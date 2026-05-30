@@ -2,8 +2,9 @@ import sqlite3 from 'sqlite3'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const dbPath = path.join(__dirname, '../../kofrinho.sqlite')
+const currentModuleUrl = import.meta.url
+const currentModuleDir = path.dirname(fileURLToPath(currentModuleUrl))
+const dbPath = path.join(currentModuleDir, '../../kofrinho.sqlite')
 
 export const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
