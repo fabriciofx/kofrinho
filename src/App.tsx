@@ -1,15 +1,16 @@
-import KofrinhoForm from './components/KofrinhoForm'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Home from './pages/Home'
+import KofrinhoDetails from './pages/KofrinhoDetails'
 import './App.css'
 
 function App() {
   return (
-    <section id="center">
-      <div>
-        <h1>Kofrinho</h1>
-        <p>Gerencie seus cofrinhos com facilidade</p>
-      </div>
-      <KofrinhoForm />
-    </section>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/kofrinho" element={<KofrinhoDetails />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

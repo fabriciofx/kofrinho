@@ -1,0 +1,132 @@
+#home {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  place-content: center;
+  place-items: center;
+  flex-grow: 1;
+  padding: 32px 20px;
+
+  @media (max-width: 1024px) {
+    padding: 32px 20px 24px;
+    gap: 18px;
+  }
+}
+
+#home h1 {
+  margin: 0;
+}
+
+#home p {
+  margin: 8px 0 0;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.kofrinho-form-section {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  padding: 24px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: var(--text-h);
+  font-size: 14px;
+}
+
+.form-group input {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 16px;
+  font-family: var(--sans);
+  color: var(--text-h);
+  background: var(--bg);
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.btn-primary {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: var(--sans);
+  background: var(--accent);
+  color: white;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  box-shadow: var(--shadow);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.mensagem {
+  padding: 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  text-align: center;
+  animation: slideIn 0.3s ease;
+  margin-top: 12px;
+}
+
+.mensagem.sucesso {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.mensagem.erro {
+  background: #fee2e2;
+  color: #7f1d1d;
+  border: 1px solid #fca5a5;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1024px) {
+  .kofrinho-form-section {
+    width: 100%;
+    max-width: 100%;
+    padding: 20px;
+  }
+
+  #home {
+    padding: 20px;
+  }
+}
