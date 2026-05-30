@@ -1,14 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useKofrinho } from '../context/KofrinhoContext'
 import Kofrinho from '../models/Kofrinho'
 import '../styles/KofrinhoForm.css'
 
-interface KofrinhoFormProps {
-  onKofrinhoCreated: (kofrinho: Kofrinho) => void
-}
-
-function KofrinhoForm({ onKofrinhoCreated }: KofrinhoFormProps) {
+function KofrinhoForm() {
   const navigate = useNavigate()
+  const { setKofrinho } = useKofrinho()
   const [usuario, setUsuario] = useState('')
   const [nome, setNome] = useState('')
   const [saldo, setSaldo] = useState('')
@@ -36,8 +34,8 @@ function KofrinhoForm({ onKofrinhoCreated }: KofrinhoFormProps) {
         new Date(),
         saldoNumerico
       )
-      onKofrinhoCreated(novoKofrinho)
-      navigate('/kofrinho', { state: { kofrinho: novoKofrinho } })
+      setKofrinho(novoKofrinho)
+      navigate('/kofrinho')
     } catch (error) {
       setMensagem(
         error instanceof Error ? error.message : 'Erro ao criar kofrinho'

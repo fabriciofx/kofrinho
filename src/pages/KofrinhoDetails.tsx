@@ -1,14 +1,11 @@
 import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import Kofrinho from '../models/Kofrinho'
+import { useNavigate } from 'react-router-dom'
+import { useKofrinho } from '../context/KofrinhoContext'
 import '../styles/KofrinhoDetails.css'
 
 function KofrinhoDetails() {
-  const location = useLocation()
   const navigate = useNavigate()
-  const [kofrinho, setKofrinho] = useState<Kofrinho | null>(
-    location.state?.kofrinho || null
-  )
+  const { kofrinho, adicionarValor, resgatarValor } = useKofrinho()
   const [valorAdicionar, setValorAdicionar] = useState('')
   const [mensagem, setMensagem] = useState('')
   const [valorResgate, setValorResgate] = useState(0)
@@ -41,8 +38,7 @@ function KofrinhoDetails() {
     }
 
     try {
-      const novoKofrinho = kofrinho.adicionarValor(valor)
-      setKofrinho(novoKofrinho)
+      adicionarValor(valor)
       setMensagem(`R$ ${valor.toFixed(2)} adicionado com sucesso!`)
       setValorAdicionar('')
     } catch (error) {
@@ -51,8 +47,7 @@ function KofrinhoDetails() {
   }
 
   const handleResgatar = () => {
-    const { saldo: saldoResgatado, novoKofrinho } = kofrinho.resgatarValor()
-    setKofrinho(novoKofrinho)
+    const saldoResgatado = resgatarValor()
     setValorResgate(saldoResgatado)
     setMensagem(`Resgate de R$ ${saldoResgatado.toFixed(2)} realizado com sucesso!`)
   }
