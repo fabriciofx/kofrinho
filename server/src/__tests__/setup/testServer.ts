@@ -4,6 +4,8 @@ import sqlite3 from 'sqlite3'
 import { Server } from 'http'
 
 import { register, login, refreshToken } from '../../controllers/authController.js'
+import { createKofrinho, listKofrinhos, getKofrinho, updateKofrinho, deleteKofrinho } from '../../controllers/kofrinhoController.js'
+import { authMiddleware } from '../../middleware/auth.js'
 
 export interface TestServerSetup {
   app: express.Application
@@ -12,15 +14,31 @@ export interface TestServerSetup {
   db: sqlite3.Database
 }
 
+export interface DbRequest extends Request {
+  testDb?: sqlite3.Database
+}
+
 export async function startTestServer(db: sqlite3.Database): Promise<TestServerSetup> {
   const app = express()
 
   app.use(express.json())
   app.use(cors())
 
+  // Middleware para injetar o banco de teste
+  app.use((req: any, res, next) => {
+    req.testDb = db
+    next()
+  })
+
   app.post('/api/auth/register', register)
   app.post('/api/auth/login', login)
   app.post('/api/auth/refresh', refreshToken)
+
+  app.post('/api/kofrinhos', authMiddleware, createKofrinho)
+  app.get('/api/kofrinhos', authMiddleware, listKofrinhos)
+  app.get('/api/kofrinhos/:id', authMiddleware, getKofrinho)
+  app.put('/api/kofrinhos/:id', authMiddleware, updateKofrinho)
+  app.delete('/api/kofrinhos/:id', authMiddleware, deleteKofrinho)
 
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Test server running' })

@@ -12,11 +12,10 @@ export interface User {
 
 export interface Kofrinho {
   id: number
-  usuario_id: number
   nome: string
-  saldo: number
+  descricao?: string | null
+  user_id: number
   criado_em: string
-  atualizado_em: string
 }
 
 export interface JwtPayload {
