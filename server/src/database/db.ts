@@ -25,6 +25,15 @@ export function runAsync(sql: string, params: any[] = []): Promise<void> {
   })
 }
 
+export function runAsyncWithLastId(sql: string, params: any[] = []): Promise<number> {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function(this: any, err) {
+      if (err) reject(err)
+      else resolve(this.lastID as number)
+    })
+  })
+}
+
 export function getAsync<T>(sql: string, params: any[] = []): Promise<T | undefined> {
   return new Promise((resolve, reject) => {
     db.get(sql, params, (err, row) => {

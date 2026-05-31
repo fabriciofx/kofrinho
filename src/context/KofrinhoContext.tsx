@@ -1,38 +1,142 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
-import Kofrinho from '../models/Kofrinho'
+import * as api from '../api/client'
+
+export interface Kofrinho {
+  id: number
+  nome: string
+  descricao?: string | null
+  user_id: number
+  criado_em: string
+}
 
 interface KofrinhoContextType {
-  kofrinho: Kofrinho | null
-  setKofrinho: (kofrinho: Kofrinho | null) => void
-  adicionarValor: (valor: number) => void
-  resgatarValor: () => number
+  kofrinhos: Kofrinho[]
+  selectedKofrinho: Kofrinho | null
+  loading: boolean
+  error: string | null
+
+  fetchKofrinhos: () => Promise<void>
+  createKofrinho: (nome: string, descricao?: string) => Promise<void>
+  selectKofrinho: (id: number) => Promise<void>
+  updateKofrinho: (id: number, nome?: string, descricao?: string) => Promise<void>
+  deleteKofrinho: (id: number) => Promise<void>
+  clearSelected: () => void
 }
 
 const KofrinhoContext = createContext<KofrinhoContextType | undefined>(undefined)
 
 export function KofrinhoProvider({ children }: { children: ReactNode }) {
-  const [kofrinho, setKofrinho] = useState<Kofrinho | null>(null)
+  const [kofrinhos, setKofrinhos] = useState<Kofrinho[]>([])
+  const [selectedKofrinho, setSelectedKofrinho] = useState<Kofrinho | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const adicionarValor = (valor: number) => {
-    if (kofrinho) {
-      setKofrinho(kofrinho.adicionarValor(valor))
+  const clearError = () => setError(null)
+
+  const fetchKofrinhos = async () => {
+    clearError()
+    setLoading(true)
+    try {
+      const data = await api.listKofrinhos()
+      setKofrinhos(data)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar kofrinhos'
+      setError(message)
+      throw err
+    } finally {
+      setLoading(false)
     }
   }
 
-  const resgatarValor = () => {
-    if (kofrinho) {
-      const { saldo, novoKofrinho } = kofrinho.resgatarValor()
-      setKofrinho(novoKofrinho)
-      return saldo
+  const createKofrinho = async (nome: string, descricao?: string) => {
+    clearError()
+    setLoading(true)
+    try {
+      const response = await api.createKofrinho(nome, descricao)
+      if (response.kofrinho) {
+        setKofrinhos([response.kofrinho, ...kofrinhos])
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao criar kofrinho'
+      setError(message)
+      throw err
+    } finally {
+      setLoading(false)
     }
-    return 0
   }
 
-  return (
-    <KofrinhoContext.Provider value={{ kofrinho, setKofrinho, adicionarValor, resgatarValor }}>
-      {children}
-    </KofrinhoContext.Provider>
-  )
+  const selectKofrinho = async (id: number) => {
+    clearError()
+    setLoading(true)
+    try {
+      const kofrinho = await api.getKofrinho(id)
+      setSelectedKofrinho(kofrinho)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar kofrinho'
+      setError(message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const updateKofrinho = async (id: number, nome?: string, descricao?: string) => {
+    clearError()
+    setLoading(true)
+    try {
+      const response = await api.updateKofrinho(id, nome, descricao)
+      if (response.kofrinho) {
+        setKofrinhos(kofrinhos.map(k => k.id === id ? response.kofrinho! : k))
+        if (selectedKofrinho?.id === id) {
+          setSelectedKofrinho(response.kofrinho)
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar kofrinho'
+      setError(message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const deleteKofrinho = async (id: number) => {
+    clearError()
+    setLoading(true)
+    try {
+      await api.deleteKofrinho(id)
+      setKofrinhos(kofrinhos.filter(k => k.id !== id))
+      if (selectedKofrinho?.id === id) {
+        setSelectedKofrinho(null)
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao deletar kofrinho'
+      setError(message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const clearSelected = () => {
+    setSelectedKofrinho(null)
+  }
+
+  const value: KofrinhoContextType = {
+    kofrinhos,
+    selectedKofrinho,
+    loading,
+    error,
+
+    fetchKofrinhos,
+    createKofrinho,
+    selectKofrinho,
+    updateKofrinho,
+    deleteKofrinho,
+    clearSelected
+  }
+
+  return <KofrinhoContext.Provider value={value}>{children}</KofrinhoContext.Provider>
 }
 
 export function useKofrinho() {

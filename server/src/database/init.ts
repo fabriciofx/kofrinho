@@ -19,18 +19,18 @@ export async function initializeDatabase() {
     await runAsync(`
       CREATE TABLE IF NOT EXISTS kofrinhos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
         nome TEXT NOT NULL,
-        saldo DECIMAL(10, 2) DEFAULT 0,
+        descricao TEXT,
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
         atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES users(id) ON DELETE CASCADE
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `)
 
     await runAsync(`
-      CREATE INDEX IF NOT EXISTS idx_kofrinhos_usuario_id 
-      ON kofrinhos(usuario_id)
+      CREATE INDEX IF NOT EXISTS idx_kofrinhos_user_id 
+      ON kofrinhos(user_id)
     `)
 
     await runAsync(`

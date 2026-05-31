@@ -1,20 +1,35 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useKofrinho } from '../context/KofrinhoContext'
 import '../styles/KofrinhoDetails.css'
 
 function KofrinhoDetails() {
   const navigate = useNavigate()
-  const { kofrinho, adicionarValor, resgatarValor } = useKofrinho()
-  const [valorAdicionar, setValorAdicionar] = useState('')
+  const { id } = useParams<{ id: string }>()
+  const { selectedKofrinho, loading, error, selectKofrinho, updateKofrinho, deleteKofrinho } = useKofrinho()
+  const [descricao, setDescricao] = useState('')
+  const [nome, setNome] = useState('')
   const [mensagem, setMensagem] = useState('')
-  const [valorResgate, setValorResgate] = useState(0)
+  const [isEditing, setIsEditing] = useState(false)
 
-  if (!kofrinho) {
+  useEffect(() => {
+    if (id) {
+      selectKofrinho(parseInt(id))
+    }
+  }, [id, selectKofrinho])
+
+  useEffect(() => {
+    if (selectedKofrinho) {
+      setNome(selectedKofrinho.nome)
+      setDescricao(selectedKofrinho.descricao || '')
+    }
+  }, [selectedKofrinho])
+
+  if (!id || loading) {
     return (
       <section id="kofrinho-details-empty">
         <div className="empty-state">
-          <h2>Nenhum Kofrinho Selecionado</h2>
+          <h2>{loading ? 'Carregando...' : 'Nenhum Kofrinho Selecionado'}</h2>
           <p>Crie um novo kofrinho para começar</p>
           <button
             type="button"
@@ -28,28 +43,52 @@ function KofrinhoDetails() {
     )
   }
 
-  const handleAdicionarValor = () => {
+  if (error || !selectedKofrinho) {
+    return (
+      <section id="kofrinho-details-empty">
+        <div className="empty-state">
+          <h2>Erro ao carregar Kofrinho</h2>
+          <p>{error || 'Kofrinho não encontrado'}</p>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => navigate('/')}
+          >
+            Voltar para Home
+          </button>
+        </div>
+      </section>
+    )
+  }
+
+  const handleSave = async () => {
     setMensagem('')
-    const valor = parseFloat(valorAdicionar)
-
-    if (!valorAdicionar || isNaN(valor) || valor <= 0) {
-      setMensagem('Digite um valor positivo')
-      return
-    }
-
     try {
-      adicionarValor(valor)
-      setMensagem(`R$ ${valor.toFixed(2)} adicionado com sucesso!`)
-      setValorAdicionar('')
-    } catch (error) {
-      setMensagem(error instanceof Error ? error.message : 'Erro ao adicionar valor')
+      await updateKofrinho(selectedKofrinho.id, nome, descricao)
+      setMensagem('Kofrinho atualizado com sucesso!')
+      setIsEditing(false)
+    } catch (err) {
+      setMensagem(err instanceof Error ? err.message : 'Erro ao atualizar kofrinho')
     }
   }
 
-  const handleResgatar = () => {
-    const saldoResgatado = resgatarValor()
-    setValorResgate(saldoResgatado)
-    setMensagem(`Resgate de R$ ${saldoResgatado.toFixed(2)} realizado com sucesso!`)
+  const handleDelete = async () => {
+    if (!confirm('Tem certeza que deseja deletar este kofrinho?')) return
+
+    setMensagem('')
+    try {
+      await deleteKofrinho(selectedKofrinho.id)
+      setMensagem('Kofrinho deletado com sucesso!')
+      setTimeout(() => navigate('/'), 2000)
+    } catch (err) {
+      setMensagem(err instanceof Error ? err.message : 'Erro ao deletar kofrinho')
+    }
+  }
+
+  const handleCancel = () => {
+    setIsEditing(false)
+    setNome(selectedKofrinho.nome)
+    setDescricao(selectedKofrinho.descricao || '')
   }
 
   return (
@@ -64,64 +103,89 @@ function KofrinhoDetails() {
 
       <div className="kofrinho-card">
         <h2>Informações do Kofrinho</h2>
-        <div className="info-group">
-          <span className="label">Usuário:</span>
-          <span className="value">{kofrinho.usuario}</span>
-        </div>
-        <div className="info-group">
-          <span className="label">Nome:</span>
-          <span className="value">{kofrinho.nome}</span>
-        </div>
-        <div className="info-group">
-          <span className="label">Data de Criação:</span>
-          <span className="value">
-            {kofrinho.dataCriacao.toLocaleDateString('pt-BR')}
-          </span>
-        </div>
-        <div className="info-group highlight">
-          <span className="label">Saldo Atual:</span>
-          <span className="value-highlight">
-            R$ {kofrinho.valor().toFixed(2)}
-          </span>
-        </div>
-      </div>
 
-      <div className="kofrinho-actions-section">
-        <div className="action-group">
-          <h3>Adicionar Valor</h3>
-          <div className="input-group">
-            <input
-              type="number"
-              placeholder="Digite o valor"
-              value={valorAdicionar}
-              onChange={(e) => setValorAdicionar(e.target.value)}
-              step="0.01"
-              min="0"
-            />
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={handleAdicionarValor}
-            >
-              Adicionar
-            </button>
-          </div>
-        </div>
+        {isEditing ? (
+          <>
+            <div className="form-group">
+              <label htmlFor="nome">Nome</label>
+              <input
+                id="nome"
+                type="text"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder="Nome do kofrinho"
+                required
+              />
+            </div>
 
-        <div className="action-group">
-          <button
-            type="button"
-            className="btn-danger"
-            onClick={handleResgatar}
-          >
-            Resgatar Tudo
-          </button>
-          {valorResgate > 0 && (
-            <p className="resgate-info">
-              Último resgate: R$ {valorResgate.toFixed(2)}
-            </p>
-          )}
-        </div>
+            <div className="form-group">
+              <label htmlFor="descricao">Descrição</label>
+              <textarea
+                id="descricao"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                placeholder="Descrição (opcional)"
+                rows={3}
+              />
+            </div>
+
+            <div className="action-buttons">
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleSave}
+                disabled={loading}
+              >
+                {loading ? 'Salvando...' : 'Salvar'}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleCancel}
+                disabled={loading}
+              >
+                Cancelar
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="info-group">
+              <span className="label">Nome:</span>
+              <span className="value">{selectedKofrinho.nome}</span>
+            </div>
+            {selectedKofrinho.descricao && (
+              <div className="info-group">
+                <span className="label">Descrição:</span>
+                <span className="value">{selectedKofrinho.descricao}</span>
+              </div>
+            )}
+            <div className="info-group">
+              <span className="label">Data de Criação:</span>
+              <span className="value">
+                {new Date(selectedKofrinho.criado_em).toLocaleDateString('pt-BR')}
+              </span>
+            </div>
+
+            <div className="action-buttons">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setIsEditing(true)}
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                className="btn-danger"
+                onClick={handleDelete}
+                disabled={loading}
+              >
+                {loading ? 'Deletando...' : 'Deletar'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {mensagem && (

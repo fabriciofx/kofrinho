@@ -1,19 +1,41 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { KofrinhoProvider } from './context/KofrinhoContext'
 import Home from './pages/Home'
 import KofrinhoDetails from './pages/KofrinhoDetails'
 import './App.css'
 
-function App() {
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth()
+  return isAuthenticated ? <>{children}</> : <Navigate to="/" replace />
+}
+
+function AppContent() {
   return (
     <BrowserRouter>
-      <KofrinhoProvider>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/kofrinho" element={<KofrinhoDetails />} />
-        </Routes>
-      </KofrinhoProvider>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route
+          path="/kofrinho/:id"
+          element={
+            <ProtectedRoute>
+              <KofrinhoDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </BrowserRouter>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <KofrinhoProvider>
+        <AppContent />
+      </KofrinhoProvider>
+    </AuthProvider>
   )
 }
 

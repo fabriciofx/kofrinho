@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { getAsync, runAsync, allAsync } from '../database/db.js'
+import { getAsync, runAsync, allAsync, runAsyncWithLastId } from '../database/db.js'
 import { AuthRequest } from '../middleware/auth.js'
 import { Kofrinho } from '../types/index.js'
 
@@ -61,7 +61,7 @@ function runDbAsyncWithLastId(req: any, sql: string, params: any[]): Promise<num
       })
     })
   }
-  return runAsync(sql, params).then(() => 0)
+  return runAsyncWithLastId(sql, params)
 }
 
 export async function createKofrinho(req: DbInjectedRequest, res: Response) {
