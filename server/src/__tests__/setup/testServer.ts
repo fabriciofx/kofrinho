@@ -2,10 +2,13 @@ import express from 'express'
 import cors from 'cors'
 import sqlite3 from 'sqlite3'
 import { Server } from 'http'
+import path from 'path'
 
 import { register, login, refreshToken, requestPasswordReset, resetPassword } from '../../controllers/authController.js'
 import { createKofrinho, listKofrinhos, getKofrinho, updateKofrinho, deleteKofrinho } from '../../controllers/kofrinhoController.js'
+import { uploadAvatar, deleteAvatar } from '../../controllers/avatarController.js'
 import { authMiddleware } from '../../middleware/auth.js'
+import { uploadMiddleware } from '../../config/multer.js'
 
 export interface TestServerSetup {
   app: express.Application
@@ -35,6 +38,9 @@ export async function startTestServer(db: sqlite3.Database): Promise<TestServerS
   app.post('/api/auth/refresh', refreshToken)
   app.post('/api/auth/forgot-password', requestPasswordReset)
   app.post('/api/auth/reset-password', resetPassword)
+
+  app.post('/api/avatars/upload', authMiddleware, uploadMiddleware.single('avatar'), uploadAvatar)
+  app.delete('/api/avatars', authMiddleware, deleteAvatar)
 
   app.post('/api/kofrinhos', authMiddleware, createKofrinho)
   app.get('/api/kofrinhos', authMiddleware, listKofrinhos)
