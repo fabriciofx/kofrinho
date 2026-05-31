@@ -3,7 +3,7 @@ import cors from 'cors'
 import sqlite3 from 'sqlite3'
 import { Server } from 'http'
 
-import { register, login, refreshToken } from '../../controllers/authController.js'
+import { register, login, refreshToken, requestPasswordReset, resetPassword } from '../../controllers/authController.js'
 import { createKofrinho, listKofrinhos, getKofrinho, updateKofrinho, deleteKofrinho } from '../../controllers/kofrinhoController.js'
 import { authMiddleware } from '../../middleware/auth.js'
 
@@ -33,6 +33,8 @@ export async function startTestServer(db: sqlite3.Database): Promise<TestServerS
   app.post('/api/auth/register', register)
   app.post('/api/auth/login', login)
   app.post('/api/auth/refresh', refreshToken)
+  app.post('/api/auth/forgot-password', requestPasswordReset)
+  app.post('/api/auth/reset-password', resetPassword)
 
   app.post('/api/kofrinhos', authMiddleware, createKofrinho)
   app.get('/api/kofrinhos', authMiddleware, listKofrinhos)

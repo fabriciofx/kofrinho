@@ -18,6 +18,7 @@ export function setupTestDb(): Promise<sqlite3.Database> {
           senha_hash TEXT NOT NULL,
           foto_avatar TEXT,
           reset_token TEXT,
+          reset_token_expira_em DATETIME,
           criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
         );
 
