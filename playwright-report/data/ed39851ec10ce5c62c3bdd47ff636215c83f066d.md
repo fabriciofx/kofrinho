@@ -6,8 +6,8 @@
 
 # Test info
 
-- Name: 04-avatar-upload.spec.ts >> Avatar Upload >> should upload avatar successfully
-- Location: e2e/04-avatar-upload.spec.ts:22:3
+- Name: 04-avatar-upload.spec.ts >> Avatar Upload >> should persist avatar across logout and login
+- Location: e2e/04-avatar-upload.spec.ts:118:3
 
 # Error details
 
@@ -31,8 +31,8 @@ Call log:
   - button "Sair"
 - complementary:
   - heading "Bem-vindo!" [level=3]
-  - paragraph: Test User 1780233520174
-  - paragraph: test1780233520174@example.com
+  - paragraph: Test User 1780233531408
+  - paragraph: test1780233531408@example.com
   - text: Sem foto
   - button "Alterar foto"
   - text: Erro interno do servidor
@@ -52,37 +52,6 @@ Call log:
 # Test source
 
 ```ts
-  1   | import { test, expect } from './fixtures'
-  2   | import fs from 'fs'
-  3   | import path from 'path'
-  4   | 
-  5   | test.describe('Avatar Upload', () => {
-  6   |   test.beforeAll(async () => {
-  7   |     // Create test image if it doesn't exist
-  8   |     const testImagePath = path.join(process.cwd(), 'e2e', 'test-image.png')
-  9   |     
-  10  |     if (!fs.existsSync(testImagePath)) {
-  11  |       // Create minimal PNG file (1x1 pixel)
-  12  |       const pngHeader = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
-  13  |       const ihdr = Buffer.from([0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0, 144, 119, 83, 222, 0, 0, 0, 12, 73, 68, 65, 84, 8, 99, 248, 15, 0, 0, 1, 1, 1, 0, 24, 187, 177, 238])
-  14  |       const iend = Buffer.from([0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130])
-  15  |       
-  16  |       const png = Buffer.concat([pngHeader, ihdr, iend])
-  17  |       fs.mkdirSync(path.dirname(testImagePath), { recursive: true })
-  18  |       fs.writeFileSync(testImagePath, png)
-  19  |     }
-  20  |   })
-  21  | 
-  22  |   test('should upload avatar successfully', async ({ authenticatedPage: page }) => {
-  23  |     await page.waitForLoadState('networkidle')
-  24  |     
-  25  |     // Find file input
-  26  |     const testImagePath = path.join(process.cwd(), 'e2e', 'test-image.png')
-  27  |     
-  28  |     // Wait for avatar section to be visible
-  29  |     await page.waitForSelector('.avatar-upload', { timeout: 5000 })
-  30  |     
-  31  |     // Upload file
   32  |     await page.locator('input[type="file"]').setInputFiles(testImagePath)
   33  |     
   34  |     // Wait for upload to complete and component re-render
@@ -92,8 +61,7 @@ Call log:
   38  |     // Verify delete button appears (indicates successful upload)
   39  |     // Button should be visible after upload
   40  |     const deleteButton = page.locator('button:has-text("Remover foto")')
-> 41  |     await expect(deleteButton).toBeVisible({ timeout: 8000 })
-      |                                ^ Error: expect(locator).toBeVisible() failed
+  41  |     await expect(deleteButton).toBeVisible({ timeout: 8000 })
   42  |   })
   43  | 
   44  |   test('should show delete avatar button after upload', async ({ authenticatedPage: page }) => {
@@ -184,7 +152,8 @@ Call log:
   129 |     await page.waitForTimeout(1500)
   130 |     
   131 |     // Verify upload
-  132 |     await expect(page.locator('button:has-text("Remover foto")')).toBeVisible({ timeout: 8000 })
+> 132 |     await expect(page.locator('button:has-text("Remover foto")')).toBeVisible({ timeout: 8000 })
+      |                                                                   ^ Error: expect(locator).toBeVisible() failed
   133 |     
   134 |     // Logout
   135 |     await page.click('button:has-text("Sair")')
@@ -194,4 +163,17 @@ Call log:
   139 |     await page.fill('input[id="email"]', testUser.email)
   140 |     await page.fill('input[id="senha"]', testUser.password)
   141 |     await page.click('button[class="btn-primary"]:has-text("Entrar")')
+  142 |     
+  143 |     // Wait for dashboard
+  144 |     await page.waitForSelector('text=Bem-vindo', { timeout: 10000 })
+  145 |     await page.waitForLoadState('networkidle')
+  146 |     
+  147 |     // Wait for avatar section
+  148 |     await page.waitForSelector('.avatar-upload', { timeout: 5000 })
+  149 |     
+  150 |     // Verify avatar persisted
+  151 |     await expect(page.locator('button:has-text("Remover foto")')).toBeVisible({ timeout: 8000 })
+  152 |   })
+  153 | })
+  154 | 
 ```

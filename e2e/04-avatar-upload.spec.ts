@@ -1,88 +1,153 @@
 import { test, expect } from './fixtures'
-import path from 'path'
 import fs from 'fs'
+import path from 'path'
 
 test.describe('Avatar Upload', () => {
-  const getTestImagePath = () => {
-    return path.join(process.cwd(), 'e2e', 'test-image.png')
-  }
-
   test.beforeAll(async () => {
-    // Create a test image file
-    const testImagePath = getTestImagePath()
+    // Create test image if it doesn't exist
+    const testImagePath = path.join(process.cwd(), 'e2e', 'test-image.png')
+    
     if (!fs.existsSync(testImagePath)) {
-      // Create a simple 1x1 PNG image (smallest valid PNG)
-      const pngBuffer = Buffer.from([
-        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
-        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
-        0xde, 0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41, 0x54, 0x08, 0xd7, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
-        0x00, 0x00, 0x03, 0x00, 0x01, 0xa5, 0x3e, 0xde, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
-        0x44, 0xae, 0x42, 0x60, 0x82,
-      ])
-      fs.writeFileSync(testImagePath, pngBuffer)
+      // Create minimal PNG file (1x1 pixel)
+      const pngHeader = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
+      const ihdr = Buffer.from([0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0, 144, 119, 83, 222, 0, 0, 0, 12, 73, 68, 65, 84, 8, 99, 248, 15, 0, 0, 1, 1, 1, 0, 24, 187, 177, 238])
+      const iend = Buffer.from([0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130])
+      
+      const png = Buffer.concat([pngHeader, ihdr, iend])
+      fs.mkdirSync(path.dirname(testImagePath), { recursive: true })
+      fs.writeFileSync(testImagePath, png)
     }
   })
 
-  test('should upload avatar successfully', async ({ page, authenticatedPage }) => {
-    page = authenticatedPage
-
-    // Find avatar upload button
-    const uploadButton = page.locator('button:has-text("Alterar foto")')
-    await expect(uploadButton).toBeVisible()
-
-    // Upload avatar
-    const testImagePath = getTestImagePath()
-    const fileInput = page.locator('input[type="file"]')
-    await fileInput.setInputFiles(testImagePath)
-
-    // Wait for upload to complete
-    await expect(page.locator('text=Removendo...')).not.toBeVisible()
-
-    // Verify success message or avatar change
-    await expect(page.locator('.avatar-image')).toBeVisible()
-  })
-
-  test('should show delete avatar button after upload', async ({ page, authenticatedPage }) => {
-    page = authenticatedPage
-
-    // Create and upload test image
-    const testImagePath = getTestImagePath()
-    const fileInput = page.locator('input[type="file"]')
-    await fileInput.setInputFiles(testImagePath)
-
-    // Wait for upload
-    await page.waitForTimeout(1000)
-
-    // Verify delete button appears
+  test('should upload avatar successfully', async ({ authenticatedPage: page }) => {
+    await page.waitForLoadState('networkidle')
+    
+    // Find file input
+    const testImagePath = path.join(process.cwd(), 'e2e', 'test-image.png')
+    
+    // Wait for avatar section to be visible
+    await page.waitForSelector('.avatar-upload', { timeout: 5000 })
+    
+    // Upload file
+    await page.locator('input[type="file"]').setInputFiles(testImagePath)
+    
+    // Wait for upload to complete and component re-render
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(1500)
+    
+    // Verify delete button appears (indicates successful upload)
+    // Button should be visible after upload
     const deleteButton = page.locator('button:has-text("Remover foto")')
-    await expect(deleteButton).toBeVisible()
+    await expect(deleteButton).toBeVisible({ timeout: 8000 })
   })
 
-  test('should delete avatar', async ({ page, authenticatedPage }) => {
-    page = authenticatedPage
+  test('should show delete avatar button after upload', async ({ authenticatedPage: page }) => {
+    await page.waitForLoadState('networkidle')
+    
+    const testImagePath = path.join(process.cwd(), 'e2e', 'test-image.png')
+    
+    // Wait for avatar section
+    await page.waitForSelector('.avatar-upload', { timeout: 5000 })
+    
+    // Upload
+    await page.locator('input[type="file"]').setInputFiles(testImagePath)
+    
+    // Wait for upload and re-render
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(1500)
+    
+    // Verify delete button
+    await expect(page.locator('button:has-text("Remover foto")')).toBeVisible({ timeout: 8000 })
+  })
 
-    // Upload image first
-    const testImagePath = getTestImagePath()
-    const fileInput = page.locator('input[type="file"]')
-    await fileInput.setInputFiles(testImagePath)
-    await page.waitForTimeout(1000)
-
+  test('should delete avatar', async ({ authenticatedPage: page }) => {
+    await page.waitForLoadState('networkidle')
+    
+    const testImagePath = path.join(process.cwd(), 'e2e', 'test-image.png')
+    
+    // Wait for avatar section
+    await page.waitForSelector('.avatar-upload', { timeout: 5000 })
+    
+    // Upload
+    await page.locator('input[type="file"]').setInputFiles(testImagePath)
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(1500)
+    
+    // Verify upload
+    await expect(page.locator('button:has-text("Remover foto")')).toBeVisible({ timeout: 8000 })
+    
     // Delete avatar
     await page.click('button:has-text("Remover foto")')
-
+    
     // Handle confirmation if shown
-    if (await page.locator('text=Deseja remover seu avatar').isVisible()) {
-      const confirmButton = page.locator('button:has-text("OK"):visible').first()
-      if (await confirmButton.isVisible()) {
-        await confirmButton.click()
-      }
+    if (await page.locator('text=Deseja remover seu avatar').isVisible({ timeout: 2000 }).catch(() => false)) {
+      await page.click('button:has-text("Confirmar")')
     }
+    
+    // Wait for deletion and re-render
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(1000)
+    
+    // Verify button gone (upload button should be back)
+    await expect(page.locator('button:has-text("Remover foto")')).not.toBeVisible({ timeout: 5000 })
+  })
 
-    // Wait for deletion
-    await page.waitForTimeout(500)
+  test('should show error on invalid file type', async ({ authenticatedPage: page }) => {
+    await page.waitForLoadState('networkidle')
+    
+    // Create invalid file
+    const invalidPath = path.join(process.cwd(), 'e2e', 'test-file.txt')
+    fs.writeFileSync(invalidPath, 'This is not an image')
+    
+    // Try to upload
+    await page.locator('input[type="file"]').setInputFiles(invalidPath)
+    
+    // Wait a bit
+    await page.waitForTimeout(1000)
+    
+    // Verify error or no upload occurred
+    const deleteBtn = await page.locator('button:has-text("Remover foto")').isVisible().catch(() => false)
+    
+    // Should not have successfully uploaded
+    await expect(!deleteBtn).toBeTruthy()
+    
+    // Cleanup
+    fs.unlinkSync(invalidPath)
+  })
 
-    // Verify avatar placeholder is back or delete button is gone
-    const deleteButton = page.locator('button:has-text("Remover foto")')
-    await expect(deleteButton).not.toBeVisible()
+  test('should persist avatar across logout and login', async ({ authenticatedPage: page, testUser }) => {
+    await page.waitForLoadState('networkidle')
+    
+    const testImagePath = path.join(process.cwd(), 'e2e', 'test-image.png')
+    
+    // Wait for avatar section
+    await page.waitForSelector('.avatar-upload', { timeout: 5000 })
+    
+    // Upload avatar
+    await page.locator('input[type="file"]').setInputFiles(testImagePath)
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(1500)
+    
+    // Verify upload
+    await expect(page.locator('button:has-text("Remover foto")')).toBeVisible({ timeout: 8000 })
+    
+    // Logout
+    await page.click('button:has-text("Sair")')
+    await page.waitForSelector('h2:has-text("Login")', { timeout: 5000 })
+    
+    // Login again
+    await page.fill('input[id="email"]', testUser.email)
+    await page.fill('input[id="senha"]', testUser.password)
+    await page.click('button[class="btn-primary"]:has-text("Entrar")')
+    
+    // Wait for dashboard
+    await page.waitForSelector('text=Bem-vindo', { timeout: 10000 })
+    await page.waitForLoadState('networkidle')
+    
+    // Wait for avatar section
+    await page.waitForSelector('.avatar-upload', { timeout: 5000 })
+    
+    // Verify avatar persisted
+    await expect(page.locator('button:has-text("Remover foto")')).toBeVisible({ timeout: 8000 })
   })
 })

@@ -1,48 +1,56 @@
 import { test as base, expect } from '@playwright/test'
 
-interface TestFixtures {
-  authenticatedPage: any
-  testUser: {
-    email: string
-    password: string
-    name: string
-  }
+interface TestUser {
+  name: string
+  email: string
+  password: string
 }
 
-export const test = base.extend<TestFixtures>({
+export const test = base.extend<{ testUser: TestUser; authenticatedPage: typeof base }>({
   testUser: async ({}, use) => {
     const timestamp = Date.now()
-    const user = {
-      email: `test-${timestamp}@example.com`,
-      password: 'TestPass@12345',
+    const testUser: TestUser = {
       name: `Test User ${timestamp}`,
+      email: `test${timestamp}@example.com`,
+      password: 'Test@1234' 
     }
-    await use(user)
+    await use(testUser)
   },
 
-  authenticatedPage: async ({ page, testUser }, use) => {
-    // Navigate to login page
+  authenticatedPage: async ({ page }, use) => {
+    const timestamp = Date.now()
+    const testUser = {
+      name: `Test User ${timestamp}`,
+      email: `test${timestamp}@example.com`,
+      password: 'Test@1234'
+    }
+
+    // Navigate to app
     await page.goto('/')
+    
+    // Wait for page to load
+    await page.waitForLoadState('networkidle')
 
-    // Click register button
-    await page.click('button:has-text("Criar conta")')
+    // Click Criar conta button
+    await page.locator('button:has-text("Criar conta")').click()
+    
+    // Wait for register form to appear
+    await page.waitForSelector('input[id="nome_completo"]', { timeout: 5000 })
 
-    // Fill registration form
+    // Fill form
     await page.fill('input[id="nome_completo"]', testUser.name)
     await page.fill('input[id="email"]', testUser.email)
     await page.fill('input[id="senha"]', testUser.password)
-
-    // Submit registration
-    await page.click('button:has-text("Criar Conta")')
-
+    
+    // Submit and wait for navigation
+    await page.click('button[class="btn-primary"]:has-text("Criar Conta")')
+    
     // Wait for dashboard to load
-    await page.waitForURL('/', { waitUntil: 'networkidle' })
-
-    // Verify dashboard is shown
-    await expect(page.locator('text=Bem-vindo')).toBeVisible()
+    await page.waitForSelector('text=Bem-vindo', { timeout: 10000 })
+    await page.waitForLoadState('networkidle')
 
     await use(page)
-  },
+  }
 })
 
 export { expect }
