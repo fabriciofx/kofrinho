@@ -1,5 +1,5 @@
 import { Response } from 'express'
-import { getAsync, allAsync, runAsyncWithLastId } from '../database/db.js'
+import { getAsync, allAsync, runAsync, runAsyncWithLastId } from '../database/db.js'
 import { AuthRequest } from '../middleware/auth.js'
 import { Deposito } from '../types/index.js'
 
@@ -110,19 +110,17 @@ export async function deleteDeposito(req: DbInjectedRequest, res: Response) {
       return res.status(404).json({ erro: 'Depósito não encontrado' })
     }
 
-    await new Promise<void>((resolve, reject) => {
-      const db = req.testDb
-      if (db) {
+    const db = req.testDb
+    if (db) {
+      await new Promise<void>((resolve, reject) => {
         db.run('DELETE FROM depositos WHERE id = ?', [depositoId], (err: Error | null) => {
           if (err) reject(err)
           else resolve()
         })
-      } else {
-        import('../database/db.js').then(({ runAsync }) =>
-          runAsync('DELETE FROM depositos WHERE id = ?', [depositoId])
-        ).then(resolve).catch(reject)
-      }
-    })
+      })
+    } else {
+      await runAsync('DELETE FROM depositos WHERE id = ?', [depositoId])
+    }
 
     return res.status(200).json({ message: 'Depósito removido com sucesso' })
   } catch (err) {
