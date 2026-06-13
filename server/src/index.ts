@@ -31,6 +31,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server running on port 3000' })
 })
 
+// Catch-all: rotas não encontradas retornam JSON, nunca HTML
+app.use((_req, res) => {
+  res.status(404).json({ erro: 'Rota não encontrada' })
+})
+
 async function startServer() {
   try {
     await initializeDatabase()

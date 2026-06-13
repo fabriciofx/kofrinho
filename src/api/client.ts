@@ -84,6 +84,11 @@ async function handleResponse<T>(response: Response): Promise<T> {
     throw new Error('Token expirado. Faça login novamente.')
   }
 
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) {
+    throw new Error(`Erro ${response.status}: resposta inesperada do servidor`)
+  }
+
   const data = await response.json()
 
   if (!response.ok) {
