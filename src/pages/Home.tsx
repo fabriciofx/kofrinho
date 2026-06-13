@@ -158,7 +158,7 @@ export default function Home() {
               onClose={() => setIsModalOpen(false)}
               title="Criar novo Kofrinho"
             >
-              <KofrinhoForm onSuccess={() => setIsModalOpen(false)} />
+              <KofrinhoForm isModal={true} onSuccess={() => setIsModalOpen(false)} />
             </Modal>
           </main>
         </div>

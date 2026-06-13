@@ -31,7 +31,7 @@ function KofrinhoForm({ onSuccess, isModal = false }: KofrinhoFormProps) {
       setDescricao('')
       
       if (isModal && onSuccess) {
-        setTimeout(() => onSuccess(), 1500)
+        setTimeout(() => onSuccess(), 1200)
       } else {
         setTimeout(() => navigate('/'), 2000)
       }
