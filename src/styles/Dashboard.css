@@ -130,9 +130,7 @@
 .kofrinhos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 3rem;
-  row-gap: 3rem;
-  column-gap: 3rem;
+  gap: 1.5rem;
   width: 100%;
   align-content: start;
 }
@@ -148,7 +146,6 @@
   height: auto;
   min-height: 250px;
   justify-content: flex-start;
-  margin: 0.75rem;
 }
 
 .kofrinho-card:hover {

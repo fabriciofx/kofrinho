@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
 import * as api from '../api/client'
 
 export interface Kofrinho {
@@ -65,8 +65,8 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const selectKofrinho = async (id: number) => {
-    clearError()
+  const selectKofrinho = useCallback(async (id: number) => {
+    setError(null)
     setLoading(true)
     try {
       const kofrinho = await api.getKofrinho(id)
@@ -78,7 +78,7 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   const updateKofrinho = async (id: number, nome?: string, descricao?: string) => {
     clearError()
