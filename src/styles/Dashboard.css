@@ -119,18 +119,15 @@
   border-radius: 12px;
   padding: 2rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.kofrinhos-section h2 {
-  margin-top: 0;
-  color: #333;
-  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .kofrinhos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
+  width: 100%;
 }
 
 .kofrinho-card {
@@ -139,6 +136,11 @@
   padding: 1.5rem;
   border: 1px solid #e0e6ed;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 300px;
+  justify-content: space-between;
 }
 
 .kofrinho-card:hover {
@@ -163,15 +165,16 @@
 .kofrinho-card .criado-em {
   color: #999;
   font-size: 0.85rem;
-  margin-top: 1rem;
+  margin-top: auto;
   padding-top: 1rem;
   border-top: 1px solid #ddd;
+  margin-bottom: 1rem;
 }
 
 .card-actions {
   display: flex;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-top: auto;
 }
 
 .btn-view {
