@@ -266,6 +266,17 @@ export async function createDeposito(
   return handleResponse(response)
 }
 
+export async function deleteDeposito(kofrinhoId: number, depositoId: number): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositos/${depositoId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    }
+  })
+  return handleResponse(response)
+}
+
 export async function listDepositos(kofrinhoId: number): Promise<Deposito[]> {
   const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositos`, {
     headers: {

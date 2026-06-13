@@ -89,6 +89,48 @@ export async function createDeposito(req: DbInjectedRequest, res: Response) {
   }
 }
 
+export async function deleteDeposito(req: DbInjectedRequest, res: Response) {
+  try {
+    const { id: kofrinhoId, depositoId } = req.params
+    const userId = req.userId
+
+    const kofrinho = await getDbAsync<{ id: number }>(req,
+      'SELECT id FROM kofrinhos WHERE id = ? AND user_id = ?',
+      [kofrinhoId, userId]
+    )
+    if (!kofrinho) {
+      return res.status(404).json({ erro: 'Kofrinho não encontrado' })
+    }
+
+    const deposito = await getDbAsync<{ id: number }>(req,
+      'SELECT id FROM depositos WHERE id = ? AND kofrinho_id = ?',
+      [depositoId, kofrinhoId]
+    )
+    if (!deposito) {
+      return res.status(404).json({ erro: 'Depósito não encontrado' })
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const db = req.testDb
+      if (db) {
+        db.run('DELETE FROM depositos WHERE id = ?', [depositoId], (err: Error | null) => {
+          if (err) reject(err)
+          else resolve()
+        })
+      } else {
+        import('../database/db.js').then(({ runAsync }) =>
+          runAsync('DELETE FROM depositos WHERE id = ?', [depositoId])
+        ).then(resolve).catch(reject)
+      }
+    })
+
+    return res.status(200).json({ message: 'Depósito removido com sucesso' })
+  } catch (err) {
+    console.error('❌ Erro ao deletar depósito:', err)
+    res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
 export async function listDepositos(req: DbInjectedRequest, res: Response) {
   try {
     const { id: kofrinhoId } = req.params

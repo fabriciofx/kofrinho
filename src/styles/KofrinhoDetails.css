@@ -318,6 +318,28 @@
   background: #fafbff;
 }
 
+.deposito-actions {
+  width: 40px;
+  text-align: center;
+}
+
+.btn-delete-deposito {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  opacity: 0.5;
+  transition: opacity 0.2s ease, background 0.2s ease;
+  line-height: 1;
+}
+
+.btn-delete-deposito:hover {
+  opacity: 1;
+  background: #fee2e2;
+}
+
 @media (max-width: 768px) {
   #kofrinho-details {
     padding: 1rem;

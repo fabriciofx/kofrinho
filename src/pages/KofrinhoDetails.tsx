@@ -13,7 +13,7 @@ const RECORRENCIA_LABEL: Record<string, string> = {
 function KofrinhoDetails() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { selectedKofrinho, depositos, loading, error, selectKofrinho, updateKofrinho, deleteKofrinho, fetchDepositos } = useKofrinho()
+  const { selectedKofrinho, depositos, loading, error, selectKofrinho, updateKofrinho, deleteKofrinho, fetchDepositos, deleteDeposito } = useKofrinho()
   const [descricao, setDescricao] = useState('')
   const [nome, setNome] = useState('')
   const [mensagem, setMensagem] = useState('')
@@ -243,6 +243,7 @@ function KofrinhoDetails() {
                 <th>Nome</th>
                 <th>Valor</th>
                 <th>Recorrência</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -253,6 +254,22 @@ function KofrinhoDetails() {
                     {d.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </td>
                   <td>{RECORRENCIA_LABEL[d.recorrencia] ?? d.recorrencia}</td>
+                  <td className="deposito-actions">
+                    <button
+                      className="btn-delete-deposito"
+                      title="Remover depósito"
+                      onClick={async () => {
+                        if (!confirm('Remover este depósito?')) return
+                        try {
+                          await deleteDeposito(selectedKofrinho!.id, d.id)
+                        } catch {
+                          /* error already set in context */
+                        }
+                      }}
+                    >
+                      🗑
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

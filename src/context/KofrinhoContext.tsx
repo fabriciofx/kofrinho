@@ -33,6 +33,7 @@ interface KofrinhoContextType {
   clearSelected: () => void
   createDeposito: (kofrinhoId: number, nome: string, valor: number, recorrencia: string) => Promise<void>
   fetchDepositos: (kofrinhoId: number) => Promise<void>
+  deleteDeposito: (kofrinhoId: number, depositoId: number) => Promise<void>
 }
 
 const KofrinhoContext = createContext<KofrinhoContextType | undefined>(undefined)
@@ -149,6 +150,17 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const deleteDeposito = useCallback(async (kofrinhoId: number, depositoId: number) => {
+    try {
+      await api.deleteDeposito(kofrinhoId, depositoId)
+      setDepositos(prev => prev.filter(d => d.id !== depositoId))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao remover depósito'
+      setError(message)
+      throw err
+    }
+  }, [])
+
   const fetchDepositos = useCallback(async (kofrinhoId: number) => {
     try {
       const data = await api.listDepositos(kofrinhoId)
@@ -174,6 +186,7 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     clearSelected,
     createDeposito,
     fetchDepositos,
+    deleteDeposito,
   }
 
   return <KofrinhoContext.Provider value={value}>{children}</KofrinhoContext.Provider>
