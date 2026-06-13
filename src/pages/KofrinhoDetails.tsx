@@ -25,11 +25,11 @@ function KofrinhoDetails() {
     }
   }, [selectedKofrinho])
 
-  if (!id || loading) {
+  if (!id) {
     return (
       <section id="kofrinho-details-empty">
         <div className="empty-state">
-          <h2>{loading ? 'Carregando...' : 'Nenhum Kofrinho Selecionado'}</h2>
+          <h2>Nenhum Kofrinho Selecionado</h2>
           <p>Crie um novo kofrinho para começar</p>
           <button
             type="button"
@@ -43,12 +43,30 @@ function KofrinhoDetails() {
     )
   }
 
-  if (error || !selectedKofrinho) {
+  if (error) {
     return (
       <section id="kofrinho-details-empty">
         <div className="empty-state">
           <h2>Erro ao carregar Kofrinho</h2>
-          <p>{error || 'Kofrinho não encontrado'}</p>
+          <p>{error}</p>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => navigate('/')}
+          >
+            Voltar para Home
+          </button>
+        </div>
+      </section>
+    )
+  }
+
+  if (!selectedKofrinho && !loading) {
+    return (
+      <section id="kofrinho-details-empty">
+        <div className="empty-state">
+          <h2>Kofrinho não encontrado</h2>
+          <p>Este kofrinho não existe ou foi deletado</p>
           <button
             type="button"
             className="btn-primary"
@@ -62,6 +80,7 @@ function KofrinhoDetails() {
   }
 
   const handleSave = async () => {
+    if (!selectedKofrinho) return
     setMensagem('')
     try {
       await updateKofrinho(selectedKofrinho.id, nome, descricao)
@@ -73,6 +92,7 @@ function KofrinhoDetails() {
   }
 
   const handleDelete = async () => {
+    if (!selectedKofrinho) return
     if (!confirm('Tem certeza que deseja deletar este kofrinho?')) return
 
     setMensagem('')
@@ -86,6 +106,7 @@ function KofrinhoDetails() {
   }
 
   const handleCancel = () => {
+    if (!selectedKofrinho) return
     setIsEditing(false)
     setNome(selectedKofrinho.nome)
     setDescricao(selectedKofrinho.descricao || '')
@@ -104,7 +125,15 @@ function KofrinhoDetails() {
       <div className="kofrinho-card">
         <h2>Informações do Kofrinho</h2>
 
-        {isEditing ? (
+        {loading ? (
+          <div className="loading-state">
+            <p>Carregando informações do kofrinho...</p>
+          </div>
+        ) : !selectedKofrinho ? (
+          <div className="empty-state">
+            <p>Nenhum kofrinho selecionado</p>
+          </div>
+        ) : isEditing ? (
           <>
             <div className="form-group">
               <label htmlFor="nome">Nome</label>
@@ -152,18 +181,18 @@ function KofrinhoDetails() {
           <>
             <div className="info-group">
               <span className="label">Nome:</span>
-              <span className="value">{selectedKofrinho.nome}</span>
+              <span className="value">{selectedKofrinho!.nome}</span>
             </div>
-            {selectedKofrinho.descricao && (
+            {selectedKofrinho!.descricao && (
               <div className="info-group">
                 <span className="label">Descrição:</span>
-                <span className="value">{selectedKofrinho.descricao}</span>
+                <span className="value">{selectedKofrinho!.descricao}</span>
               </div>
             )}
             <div className="info-group">
               <span className="label">Data de Criação:</span>
               <span className="value">
-                {new Date(selectedKofrinho.criado_em).toLocaleDateString('pt-BR')}
+                {new Date(selectedKofrinho!.criado_em).toLocaleDateString('pt-BR')}
               </span>
             </div>
 

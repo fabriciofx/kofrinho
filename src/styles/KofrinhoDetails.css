@@ -36,6 +36,27 @@
   margin-bottom: 1.5rem;
 }
 
+.loading-state {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.loading-state p {
+  font-size: 1rem;
+  margin: 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .btn-back {
   align-self: flex-start;
   padding: 0.5rem 1rem;
