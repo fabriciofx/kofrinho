@@ -107,17 +107,17 @@ export default function Home() {
           </aside>
 
           <main className="dashboard-main">
-            <div className="kofrinhos-header">
-              <h2>Meus Kofrinhos</h2>
-              <button 
-                onClick={() => setIsModalOpen(true)}
-                className="btn-create-kofrinho"
-              >
-                + Criar novo Kofrinho
-              </button>
-            </div>
-
             <div className="kofrinhos-section">
+              <div className="kofrinhos-header">
+                <h2>Meus Kofrinhos</h2>
+                <button 
+                  onClick={() => setIsModalOpen(true)}
+                  className="btn-create-kofrinho"
+                >
+                  + Criar novo Kofrinho
+                </button>
+              </div>
+
               {kofrinhoLoading && <p>Carregando kofrinhos...</p>}
 
               {kofrinhos.length === 0 && !kofrinhoLoading ? (
