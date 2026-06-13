@@ -3,10 +3,17 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useKofrinho } from '../context/KofrinhoContext'
 import '../styles/KofrinhoDetails.css'
 
+const RECORRENCIA_LABEL: Record<string, string> = {
+  diario: 'Diário',
+  semanal: 'Semanal',
+  mensal: 'Mensal',
+  anual: 'Anual',
+}
+
 function KofrinhoDetails() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { selectedKofrinho, loading, error, selectKofrinho, updateKofrinho, deleteKofrinho } = useKofrinho()
+  const { selectedKofrinho, depositos, loading, error, selectKofrinho, updateKofrinho, deleteKofrinho, fetchDepositos } = useKofrinho()
   const [descricao, setDescricao] = useState('')
   const [nome, setNome] = useState('')
   const [mensagem, setMensagem] = useState('')
@@ -15,8 +22,9 @@ function KofrinhoDetails() {
   useEffect(() => {
     if (id) {
       selectKofrinho(parseInt(id))
+      fetchDepositos(parseInt(id))
     }
-  }, [id, selectKofrinho])
+  }, [id, selectKofrinho, fetchDepositos])
 
   useEffect(() => {
     if (selectedKofrinho) {
@@ -222,6 +230,35 @@ function KofrinhoDetails() {
           {mensagem}
         </div>
       )}
+
+      <div className="depositos-section">
+        <h2>Depósitos</h2>
+
+        {depositos.length === 0 ? (
+          <p className="depositos-empty">Nenhum depósito cadastrado ainda.</p>
+        ) : (
+          <table className="depositos-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Valor</th>
+                <th>Recorrência</th>
+              </tr>
+            </thead>
+            <tbody>
+              {depositos.map((d) => (
+                <tr key={d.id}>
+                  <td>{d.nome}</td>
+                  <td>
+                    {d.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </td>
+                  <td>{RECORRENCIA_LABEL[d.recorrencia] ?? d.recorrencia}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </section>
   )
 }

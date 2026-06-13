@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useKofrinho } from '../context/KofrinhoContext'
 import { AvatarUpload } from '../components/AvatarUpload'
 import KofrinhoForm from '../components/KofrinhoForm'
+import DepositoForm from '../components/DepositoForm'
 import { Modal } from '../components/Modal'
 import '../styles/Auth.css'
 import '../styles/Dashboard.css'
@@ -20,6 +21,7 @@ export default function Home() {
   })
   const [message, setMessage] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [depositoKofrinhoId, setDepositoKofrinhoId] = useState<number | null>(null)
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -141,6 +143,12 @@ export default function Home() {
                           Ver Detalhes
                         </button>
                         <button
+                          onClick={() => setDepositoKofrinhoId(kofrinho.id)}
+                          className="btn-deposito"
+                        >
+                          Criar Depósito
+                        </button>
+                        <button
                           onClick={() => handleDeleteKofrinho(kofrinho.id)}
                           className="btn-delete-small"
                         >
@@ -153,12 +161,25 @@ export default function Home() {
               )}
             </div>
 
-            <Modal 
+            <Modal
               isOpen={isModalOpen}
               onClose={() => setIsModalOpen(false)}
               title="Criar novo Kofrinho"
             >
               <KofrinhoForm isModal={true} onSuccess={() => setIsModalOpen(false)} />
+            </Modal>
+
+            <Modal
+              isOpen={depositoKofrinhoId !== null}
+              onClose={() => setDepositoKofrinhoId(null)}
+              title="Criar Depósito"
+            >
+              {depositoKofrinhoId !== null && (
+                <DepositoForm
+                  kofrinhoId={depositoKofrinhoId}
+                  onSuccess={() => setDepositoKofrinhoId(null)}
+                />
+              )}
             </Modal>
           </main>
         </div>

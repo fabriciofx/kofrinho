@@ -18,6 +18,15 @@ export interface Kofrinho {
   criado_em: string
 }
 
+export interface Deposito {
+  id: number
+  kofrinho_id: number
+  nome: string
+  valor: number
+  recorrencia: 'anual' | 'mensal' | 'semanal' | 'diario'
+  criado_em: string
+}
+
 export interface JwtPayload {
   id: number
   email: string

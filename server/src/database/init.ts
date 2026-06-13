@@ -34,8 +34,25 @@ export async function initializeDatabase() {
     `)
 
     await runAsync(`
-      CREATE INDEX IF NOT EXISTS idx_users_email 
+      CREATE INDEX IF NOT EXISTS idx_users_email
       ON users(email)
+    `)
+
+    await runAsync(`
+      CREATE TABLE IF NOT EXISTS depositos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        kofrinho_id INTEGER NOT NULL,
+        nome TEXT NOT NULL,
+        valor REAL NOT NULL,
+        recorrencia TEXT NOT NULL CHECK(recorrencia IN ('anual', 'mensal', 'semanal', 'diario')),
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (kofrinho_id) REFERENCES kofrinhos(id) ON DELETE CASCADE
+      )
+    `)
+
+    await runAsync(`
+      CREATE INDEX IF NOT EXISTS idx_depositos_kofrinho_id
+      ON depositos(kofrinho_id)
     `)
 
     console.log('✅ Banco de dados inicializado com sucesso')

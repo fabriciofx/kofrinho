@@ -204,6 +204,23 @@
   box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
 }
 
+.btn-deposito {
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(135deg, #28a745 0%, #20883a 100%);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.btn-deposito:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
 .btn-delete-small {
   padding: 0.5rem 0.75rem;
   background-color: #dc3545;

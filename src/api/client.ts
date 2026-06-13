@@ -34,6 +34,15 @@ export interface KofrinhoResponse {
   kofrinhos?: Kofrinho[]
 }
 
+export interface Deposito {
+  id: number
+  kofrinho_id: number
+  nome: string
+  valor: number
+  recorrencia: 'anual' | 'mensal' | 'semanal' | 'diario'
+  criado_em: string
+}
+
 let storedTokens: AuthTokens | null = null
 
 export function setStoredTokens(tokens: AuthTokens | null) {
@@ -232,6 +241,35 @@ export async function deleteKofrinho(id: number): Promise<{ message: string }> {
   })
 
   return handleResponse<{ message: string }>(response)
+}
+
+// Deposito endpoints
+export async function createDeposito(
+  kofrinhoId: number,
+  nome: string,
+  valor: number,
+  recorrencia: string
+): Promise<{ message: string; deposito: Deposito }> {
+  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositos`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify({ nome, valor, recorrencia })
+  })
+  return handleResponse(response)
+}
+
+export async function listDepositos(kofrinhoId: number): Promise<Deposito[]> {
+  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositos`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    }
+  })
+  const data = await handleResponse<{ depositos: Deposito[] }>(response)
+  return data.depositos
 }
 
 // Avatar endpoints

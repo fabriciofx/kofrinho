@@ -260,6 +260,64 @@
   }
 }
 
+.depositos-section {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 600px;
+  margin: 0 auto 1.5rem;
+  width: 100%;
+}
+
+.depositos-section h2 {
+  margin-top: 0;
+  color: #333;
+  font-size: 1.3rem;
+  margin-bottom: 1.25rem;
+}
+
+.depositos-empty {
+  color: #888;
+  font-size: 0.95rem;
+  text-align: center;
+  padding: 1rem 0;
+  margin: 0;
+}
+
+.depositos-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.depositos-table th {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  background: #f5f7fa;
+  color: #555;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid #e0e6ed;
+}
+
+.depositos-table td {
+  padding: 0.75rem;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.depositos-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.depositos-table tbody tr:hover {
+  background: #fafbff;
+}
+
 @media (max-width: 768px) {
   #kofrinho-details {
     padding: 1rem;
@@ -285,5 +343,15 @@
 
   #kofrinho-details-empty {
     padding: 1rem;
+  }
+
+  .depositos-section {
+    padding: 1.25rem;
+  }
+
+  .depositos-table th,
+  .depositos-table td {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.88rem;
   }
 }
