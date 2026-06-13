@@ -77,6 +77,43 @@
   gap: 2rem;
 }
 
+.kofrinhos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.kofrinhos-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+  flex: 1;
+}
+
+.btn-create-kofrinho {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.btn-create-kofrinho:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-create-kofrinho:active {
+  transform: translateY(0);
+}
+
 .kofrinhos-section {
   background: white;
   border-radius: 12px;
@@ -177,13 +214,6 @@
   color: #666;
 }
 
-.create-kofrinho-section {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
 @media (max-width: 1024px) {
   .dashboard-content {
     flex-direction: column;
@@ -195,6 +225,15 @@
 
   .kofrinhos-grid {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+
+  .kofrinhos-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-create-kofrinho {
+    width: 100%;
   }
 }
 
@@ -212,5 +251,18 @@
 
   .kofrinhos-grid {
     grid-template-columns: 1fr;
+  }
+
+  .kofrinhos-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .kofrinhos-header h2 {
+    font-size: 1.3rem;
+  }
+
+  .btn-create-kofrinho {
+    width: 100%;
   }
 }

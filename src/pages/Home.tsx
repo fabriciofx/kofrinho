@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useKofrinho } from '../context/KofrinhoContext'
 import { AvatarUpload } from '../components/AvatarUpload'
 import KofrinhoForm from '../components/KofrinhoForm'
+import { Modal } from '../components/Modal'
 import '../styles/Auth.css'
 import '../styles/Dashboard.css'
 
@@ -18,6 +19,7 @@ export default function Home() {
     nome_completo: ''
   })
   const [message, setMessage] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -105,9 +107,17 @@ export default function Home() {
           </aside>
 
           <main className="dashboard-main">
-            <div className="kofrinhos-section">
+            <div className="kofrinhos-header">
               <h2>Meus Kofrinhos</h2>
-              
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="btn-create-kofrinho"
+              >
+                + Criar novo Kofrinho
+              </button>
+            </div>
+
+            <div className="kofrinhos-section">
               {kofrinhoLoading && <p>Carregando kofrinhos...</p>}
 
               {kofrinhos.length === 0 && !kofrinhoLoading ? (
@@ -143,9 +153,13 @@ export default function Home() {
               )}
             </div>
 
-            <div className="create-kofrinho-section">
-              <KofrinhoForm />
-            </div>
+            <Modal 
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              title="Criar novo Kofrinho"
+            >
+              <KofrinhoForm onSuccess={() => setIsModalOpen(false)} />
+            </Modal>
           </main>
         </div>
       </div>

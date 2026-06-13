@@ -19,6 +19,16 @@
   color: var(--text-h);
 }
 
+.kofrinho-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kofrinho-form.modal-form {
+  gap: 16px;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
