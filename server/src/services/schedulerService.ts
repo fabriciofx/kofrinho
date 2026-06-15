@@ -102,7 +102,6 @@ export async function processarAgendamentos(
     try {
       const payload = construirPayloadConfrapix(
         ag.valor,
-        ag.nome_completo,
         ag.kofrinho_descricao,
         ag.kofrinho_id,
         ag.depositante_id,

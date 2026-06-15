@@ -1,7 +1,5 @@
 export interface ConfrapixPayload {
   amount: number
-  customer_document: string
-  customer_name: string
   description: string
   expiration_date: string
   callback_url: string
@@ -37,7 +35,6 @@ export function formatarDataExpiracao(agora: Date = new Date()): string {
 
 export function construirPayloadConfrapix(
   valor: number,
-  nomeDonoKofrinho: string,
   descricaoKofrinho: string | null,
   kofrinhoId: number,
   depositanteId: number,
@@ -45,8 +42,6 @@ export function construirPayloadConfrapix(
 ): ConfrapixPayload {
   return {
     amount: valor,
-    customer_document: process.env.CONFRAPIX_CUSTOMER_DOCUMENT || '',
-    customer_name: `Kofrinho de ${nomeDonoKofrinho}`,
     description: descricaoKofrinho || '',
     expiration_date: formatarDataExpiracao(agora),
     callback_url: `https://mandacaru.org:3000/kofrinho/${kofrinhoId}/depositante/${depositanteId}`,

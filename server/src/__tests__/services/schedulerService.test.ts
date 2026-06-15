@@ -104,48 +104,29 @@ describe('formatarDataExpiracao', () => {
 describe('construirPayloadConfrapix', () => {
   const agora = new Date('2025-06-15T08:00:00.000Z')
 
-  beforeEach(() => { process.env.CONFRAPIX_CUSTOMER_DOCUMENT = '123.456.789-00' })
-  afterEach(() => { delete process.env.CONFRAPIX_CUSTOMER_DOCUMENT })
-
   test('amount é o valor do depositante', () => {
-    const p = construirPayloadConfrapix(2500, 'João', null, 1, 1, agora)
+    const p = construirPayloadConfrapix(2500, null, 1, 1, agora)
     expect(p.amount).toBe(2500)
   })
 
-  test('customer_name é "Kofrinho de ${nomeDonoKofrinho}"', () => {
-    const p = construirPayloadConfrapix(100, 'Maria Silva', null, 1, 1, agora)
-    expect(p.customer_name).toBe('Kofrinho de Maria Silva')
-  })
-
   test('description é a descrição do kofrinho', () => {
-    const p = construirPayloadConfrapix(100, 'X', 'Férias 2025', 1, 1, agora)
+    const p = construirPayloadConfrapix(100, 'Férias 2025', 1, 1, agora)
     expect(p.description).toBe('Férias 2025')
   })
 
   test('description é string vazia quando descrição é null', () => {
-    const p = construirPayloadConfrapix(100, 'X', null, 1, 1, agora)
+    const p = construirPayloadConfrapix(100, null, 1, 1, agora)
     expect(p.description).toBe('')
   })
 
   test('expiration_date é 24h no futuro no formato correto', () => {
-    const p = construirPayloadConfrapix(100, 'X', null, 1, 1, agora)
+    const p = construirPayloadConfrapix(100, null, 1, 1, agora)
     expect(p.expiration_date).toBe('2025-06-16 08:00:00')
   })
 
   test('callback_url contém kofrinho_id e depositante_id', () => {
-    const p = construirPayloadConfrapix(100, 'X', null, 42, 7, agora)
+    const p = construirPayloadConfrapix(100, null, 42, 7, agora)
     expect(p.callback_url).toBe('https://mandacaru.org:3000/kofrinho/42/depositante/7')
-  })
-
-  test('customer_document vem de CONFRAPIX_CUSTOMER_DOCUMENT', () => {
-    const p = construirPayloadConfrapix(100, 'X', null, 1, 1, agora)
-    expect(p.customer_document).toBe('123.456.789-00')
-  })
-
-  test('customer_document é string vazia quando variável não está definida', () => {
-    delete process.env.CONFRAPIX_CUSTOMER_DOCUMENT
-    const p = construirPayloadConfrapix(100, 'X', null, 1, 1, agora)
-    expect(p.customer_document).toBe('')
   })
 })
 
@@ -201,7 +182,6 @@ describe('processarAgendamentos', () => {
       pixUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       pixCode: '00020126580014br.gov.bcb.pix0136test-pix-code-12345678901234567890',
     }))
-    process.env.CONFRAPIX_CUSTOMER_DOCUMENT = '123.456.789-00'
 
     userId = await inserirUsuario(db, `user-${Date.now()}@teste.com`)
     kofrinhoId = await inserirKofrinho(db, userId, 'Kofrinho Teste')
@@ -211,7 +191,6 @@ describe('processarAgendamentos', () => {
   afterEach(async () => {
     await closeTestDb(db)
     jest.clearAllMocks()
-    delete process.env.CONFRAPIX_CUSTOMER_DOCUMENT
   })
 
   // ── Comportamento geral ───────────────────────────────────────────────────
@@ -393,9 +372,7 @@ describe('processarAgendamentos', () => {
 
     const payload = mockConfrapixFn.mock.calls[0][0]
     expect(payload.amount).toBe(1500)
-    expect(payload.customer_name).toBe('Kofrinho de Usuário Teste')
     expect(payload.description).toBe('Férias 2025')
-    expect(payload.customer_document).toBe('123.456.789-00')
     expect(payload.callback_url).toBe(
       `https://mandacaru.org:3000/kofrinho/${kfId}/depositante/${depId}`
     )
