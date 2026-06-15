@@ -134,7 +134,30 @@ function KofrinhoDetails() {
       </button>
 
       <div className="kofrinho-card">
-        <h2>Informações do Kofrinho</h2>
+        <div className="kofrinho-card-header">
+          <h2>Informações do Kofrinho</h2>
+          {!isEditing && selectedKofrinho && (
+            <div className="kofrinho-card-icons">
+              <button
+                type="button"
+                className="btn-icon-kofrinho btn-icon-edit"
+                title="Editar kofrinho"
+                onClick={() => setIsEditing(true)}
+              >
+                ✏️
+              </button>
+              <button
+                type="button"
+                className="btn-icon-kofrinho btn-icon-delete"
+                title="Deletar kofrinho"
+                onClick={handleDelete}
+                disabled={loading}
+              >
+                🗑
+              </button>
+            </div>
+          )}
+        </div>
 
         {loading ? (
           <div className="loading-state">
@@ -205,24 +228,6 @@ function KofrinhoDetails() {
               <span className="value">
                 {new Date(selectedKofrinho!.criado_em).toLocaleDateString('pt-BR')}
               </span>
-            </div>
-
-            <div className="action-buttons">
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => setIsEditing(true)}
-              >
-                Editar
-              </button>
-              <button
-                type="button"
-                className="btn-danger"
-                onClick={handleDelete}
-                disabled={loading}
-              >
-                {loading ? 'Deletando...' : 'Deletar'}
-              </button>
             </div>
           </>
         )}
