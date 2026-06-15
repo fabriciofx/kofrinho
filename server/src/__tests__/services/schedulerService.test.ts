@@ -197,7 +197,10 @@ describe('processarAgendamentos', () => {
   beforeEach(async () => {
     db = await setupTestDb()
     mockSendFn = jest.fn().mockImplementation(() => Promise.resolve())
-    mockConfrapixFn = jest.fn().mockImplementation(() => Promise.resolve())
+    mockConfrapixFn = jest.fn().mockImplementation(() => Promise.resolve({
+      pixUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      pixCode: '00020126580014br.gov.bcb.pix0136test-pix-code-12345678901234567890',
+    }))
     process.env.CONFRAPIX_CUSTOMER_DOCUMENT = '123.456.789-00'
 
     userId = await inserirUsuario(db, `user-${Date.now()}@teste.com`)
@@ -366,7 +369,10 @@ describe('processarAgendamentos', () => {
 
   test('chama confrapixFn antes de sendFn', async () => {
     const ordem: string[] = []
-    mockConfrapixFn.mockImplementation(() => { ordem.push('confrapix'); return Promise.resolve() })
+    mockConfrapixFn.mockImplementation(() => {
+      ordem.push('confrapix')
+      return Promise.resolve({ pixUrl: 'data:image/png;base64,test', pixCode: 'pix-code' })
+    })
     mockSendFn.mockImplementation(() => { ordem.push('email'); return Promise.resolve() })
 
     const passado = new Date(Date.now() - 1000)
@@ -435,6 +441,36 @@ describe('processarAgendamentos', () => {
     )
     // proxima_execucao deve continuar no passado (não foi atualizada)
     expect(new Date(ag!.proxima_execucao).getTime()).toBeLessThan(Date.now())
+  })
+
+  test('sendFn recebe pixUrl retornado pelo confrapixFn', async () => {
+    mockConfrapixFn.mockImplementation(() => Promise.resolve({
+      pixUrl: 'data:image/png;base64,QRCODE123',
+      pixCode: 'PIX_CODE_ABC',
+    }))
+
+    const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
+
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    const args = mockSendFn.mock.calls[0]
+    expect(args[6]).toBe('data:image/png;base64,QRCODE123')
+  })
+
+  test('sendFn recebe pixCode retornado pelo confrapixFn', async () => {
+    mockConfrapixFn.mockImplementation(() => Promise.resolve({
+      pixUrl: 'data:image/png;base64,QRCODE123',
+      pixCode: '00020126580014br.gov.bcb.pix0136CODIGO_COPIA_COLA',
+    }))
+
+    const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
+
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    const args = mockSendFn.mock.calls[0]
+    expect(args[7]).toBe('00020126580014br.gov.bcb.pix0136CODIGO_COPIA_COLA')
   })
 
   test('envia e-mail com os dados corretos do depositante', async () => {

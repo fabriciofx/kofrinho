@@ -114,13 +114,23 @@ export async function sendAgendamentoEmail(
   nomeKofrinho: string,
   descricaoKofrinho: string | null,
   valor: number,
-  recorrencia: string
+  recorrencia: string,
+  pixUrl: string,
+  pixCode: string
 ): Promise<void> {
   const valorFormatado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   const referencia = descricaoKofrinho || nomeKofrinho
+  const imgSrc = pixUrl.startsWith('data:') ? pixUrl : `data:image/png;base64,${pixUrl}`
 
   const subject = `Kofrinho de ${nomeDonoKofrinho}: depositar ${valorFormatado} no cofre ${nomeKofrinho}`
-  const html = `<p>Olá! Eu sou o Kofrinho! Estou lhe enviando essa mensagem para lembrar-lhe de depositar ${valorFormatado} no Kofrinho de ${nomeDonoKofrinho} referente a ${referencia}</p>`
+  const html = `
+    <p>Olá! Eu sou o Kofrinho! Estou lhe enviando essa mensagem para lembrar-lhe de depositar ${valorFormatado} no Kofrinho de ${nomeDonoKofrinho} referente a ${referencia}</p>
+    <h3 style="margin-top:1.5rem;">Pagamento via Pix</h3>
+    <p>Escaneie o QR Code abaixo ou use o código Pix para realizar o depósito:</p>
+    <img src="${imgSrc}" alt="QR Code Pix" width="200" height="200" style="display:block;margin:1rem 0;" />
+    <p><strong>Código Pix (Copia e Cola):</strong></p>
+    <pre style="background:#f5f5f5;padding:0.75rem;border-radius:4px;word-break:break-all;font-size:0.85rem;">${pixCode}</pre>
+  `
 
   const resend = new Resend(carregarResendApiKey())
   const { error } = await resend.emails.send({

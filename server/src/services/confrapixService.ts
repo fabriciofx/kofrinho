@@ -7,7 +7,21 @@ export interface ConfrapixPayload {
   callback_url: string
 }
 
-export type ConfrapixFn = (payload: ConfrapixPayload) => Promise<void>
+export interface ConfrapixPixData {
+  pixUrl: string
+  pixCode: string
+}
+
+export type ConfrapixFn = (payload: ConfrapixPayload) => Promise<ConfrapixPixData>
+
+interface ConfrapixResponse {
+  transaction: {
+    pix: {
+      url: string
+      code: string
+    }
+  }
+}
 
 const CONFRAPIX_URL = 'https://api.confrapix.com.br/api/transaction-ec/store'
 
@@ -39,7 +53,7 @@ export function construirPayloadConfrapix(
   }
 }
 
-export async function chamarConfrapix(payload: ConfrapixPayload): Promise<void> {
+export async function chamarConfrapix(payload: ConfrapixPayload): Promise<ConfrapixPixData> {
   const token = process.env.CONFRAPIX_TOKEN
   if (!token) throw new Error('CONFRAPIX_TOKEN não configurado no .env')
 
@@ -57,5 +71,11 @@ export async function chamarConfrapix(payload: ConfrapixPayload): Promise<void> 
     throw new Error(`Confrapix API: ${response.status} - ${texto}`)
   }
 
+  const data = await response.json() as ConfrapixResponse
   console.log(`💳 Confrapix: transação registrada — ${payload.callback_url}`)
+
+  return {
+    pixUrl: data.transaction.pix.url,
+    pixCode: data.transaction.pix.code,
+  }
 }

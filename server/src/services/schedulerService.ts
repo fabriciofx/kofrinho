@@ -11,7 +11,9 @@ export type EmailSendFn = (
   nomeKofrinho: string,
   descricaoKofrinho: string | null,
   valor: number,
-  recorrencia: string
+  recorrencia: string,
+  pixUrl: string,
+  pixCode: string
 ) => Promise<void>
 
 export { type ConfrapixFn }
@@ -99,7 +101,7 @@ export async function processarAgendamentos(
         ag.depositante_id,
         agora
       )
-      await confrapixFn(payload)
+      const { pixUrl, pixCode } = await confrapixFn(payload)
 
       await sendFn(
         ag.depositante_email,
@@ -107,7 +109,9 @@ export async function processarAgendamentos(
         ag.kofrinho_nome,
         ag.kofrinho_descricao,
         ag.valor,
-        ag.recorrencia
+        ag.recorrencia,
+        pixUrl,
+        pixCode
       )
 
       const proxima = calcularProximaExecucao(ag.recorrencia).toISOString()
