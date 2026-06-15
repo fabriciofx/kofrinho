@@ -313,20 +313,24 @@ describe('Depositante Controller', () => {
       expect(res.body.erro).toContain('obrigatório')
     })
 
-    test('retorna 400 quando valor é zero ou negativo', async () => {
-      const resZero = await request(testServer.app)
+    test('retorna 400 quando valor é menor que R$ 0,50', async () => {
+      for (const [val, email] of [[0, 'zero@val.com'], [-1, 'neg@val.com'], [0.49, 'abaixo@val.com']]) {
+        const res = await request(testServer.app)
+          .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+          .set('Authorization', `Bearer ${validToken}`)
+          .send({ nome: 'Inválido', valor: val, recorrencia: 'mensal', email })
+        expect(res.status).toBe(400)
+        expect(res.body.erro).toContain('0,50')
+      }
+    })
+
+    test('aceita valor exatamente igual a R$ 0,50', async () => {
+      const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Inválido', valor: 0, recorrencia: 'mensal', email: 'zero@val.com' })
-
-      expect(resZero.status).toBe(400)
-
-      const resNeg = await request(testServer.app)
-        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
-        .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Inválido', valor: -100, recorrencia: 'mensal', email: 'neg@val.com' })
-
-      expect(resNeg.status).toBe(400)
+        .send({ nome: 'Mínimo', valor: 0.50, recorrencia: 'mensal', email: 'min@val.com' })
+      expect(res.status).toBe(201)
+      expect(res.body.depositante.valor).toBe(0.5)
     })
 
     test('retorna 400 para recorrencia inválida', async () => {
@@ -454,13 +458,23 @@ describe('Depositante Controller', () => {
       expect(res.body.erro).toContain('E-mail inválido')
     })
 
-    test('retorna 400 para valor negativo', async () => {
+    test('retorna 400 para valor abaixo de R$ 0,50', async () => {
+      for (const valor of [-50, 0, 0.49]) {
+        const res = await request(testServer.app)
+          .put(`/api/kofrinhos/${kofrinhoId}/depositantes/${depId}`)
+          .set('Authorization', `Bearer ${validToken}`)
+          .send({ valor })
+        expect(res.status).toBe(400)
+      }
+    })
+
+    test('aceita valor exatamente igual a R$ 0,50 na edição', async () => {
       const res = await request(testServer.app)
         .put(`/api/kofrinhos/${kofrinhoId}/depositantes/${depId}`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ valor: -50 })
-
-      expect(res.status).toBe(400)
+        .send({ valor: 0.50 })
+      expect(res.status).toBe(200)
+      expect(res.body.depositante.valor).toBe(0.5)
     })
 
     test('retorna 400 para recorrencia inválida', async () => {

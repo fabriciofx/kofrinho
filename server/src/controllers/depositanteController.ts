@@ -80,8 +80,8 @@ export async function createDepositante(req: DbInjectedRequest, res: Response) {
     if (!nome || !nome.trim()) {
       return res.status(400).json({ erro: 'Nome é obrigatório' })
     }
-    if (valor === undefined || valor === null || isNaN(Number(valor)) || Number(valor) <= 0) {
-      return res.status(400).json({ erro: 'Valor deve ser um número positivo' })
+    if (valor === undefined || valor === null || isNaN(Number(valor)) || Number(valor) < 0.5) {
+      return res.status(400).json({ erro: 'Valor deve ser no mínimo R$ 0,50' })
     }
     if (!recorrencia || !RECORRENCIAS_VALIDAS.includes(recorrencia)) {
       return res.status(400).json({ erro: 'Recorrência inválida. Use: anual, mensal, semanal ou diario' })
@@ -140,8 +140,8 @@ export async function updateDepositante(req: DbInjectedRequest, res: Response) {
     if (nome !== undefined && !String(nome).trim()) {
       return res.status(400).json({ erro: 'Nome é obrigatório' })
     }
-    if (valor !== undefined && (isNaN(Number(valor)) || Number(valor) <= 0)) {
-      return res.status(400).json({ erro: 'Valor deve ser um número positivo' })
+    if (valor !== undefined && (isNaN(Number(valor)) || Number(valor) < 0.5)) {
+      return res.status(400).json({ erro: 'Valor deve ser no mínimo R$ 0,50' })
     }
     if (recorrencia !== undefined && !RECORRENCIAS_VALIDAS.includes(recorrencia)) {
       return res.status(400).json({ erro: 'Recorrência inválida. Use: anual, mensal, semanal ou diario' })
