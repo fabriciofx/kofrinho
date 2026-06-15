@@ -39,7 +39,7 @@ export async function initializeDatabase() {
     `)
 
     await runAsync(`
-      CREATE TABLE IF NOT EXISTS depositos (
+      CREATE TABLE IF NOT EXISTS depositantes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         kofrinho_id INTEGER NOT NULL,
         nome TEXT NOT NULL,
@@ -51,8 +51,8 @@ export async function initializeDatabase() {
     `)
 
     await runAsync(`
-      CREATE INDEX IF NOT EXISTS idx_depositos_kofrinho_id
-      ON depositos(kofrinho_id)
+      CREATE INDEX IF NOT EXISTS idx_depositantes_kofrinho_id
+      ON depositantes(kofrinho_id)
     `)
 
     console.log('✅ Banco de dados inicializado com sucesso')

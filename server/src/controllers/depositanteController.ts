@@ -1,7 +1,7 @@
 import { Response } from 'express'
 import { getAsync, allAsync, runAsync, runAsyncWithLastId } from '../database/db.js'
 import { AuthRequest } from '../middleware/auth.js'
-import { Deposito } from '../types/index.js'
+import { Depositante } from '../types/index.js'
 
 interface DbInjectedRequest extends AuthRequest {
   testDb?: any
@@ -48,7 +48,7 @@ function runDbAsyncWithLastId(req: any, sql: string, params: any[]): Promise<num
 
 const RECORRENCIAS_VALIDAS = ['anual', 'mensal', 'semanal', 'diario']
 
-export async function createDeposito(req: DbInjectedRequest, res: Response) {
+export async function createDepositante(req: DbInjectedRequest, res: Response) {
   try {
     const { id: kofrinhoId } = req.params
     const { nome, valor, recorrencia } = req.body
@@ -73,25 +73,25 @@ export async function createDeposito(req: DbInjectedRequest, res: Response) {
     }
 
     const lastId = await runDbAsyncWithLastId(req,
-      'INSERT INTO depositos (kofrinho_id, nome, valor, recorrencia) VALUES (?, ?, ?, ?)',
+      'INSERT INTO depositantes (kofrinho_id, nome, valor, recorrencia) VALUES (?, ?, ?, ?)',
       [kofrinhoId, nome.trim(), Number(valor), recorrencia]
     )
 
-    const deposito = await getDbAsync<Deposito>(req,
-      'SELECT id, kofrinho_id, nome, valor, recorrencia, criado_em FROM depositos WHERE id = ?',
+    const depositante = await getDbAsync<Depositante>(req,
+      'SELECT id, kofrinho_id, nome, valor, recorrencia, criado_em FROM depositantes WHERE id = ?',
       [lastId]
     )
 
-    return res.status(201).json({ message: 'Depósito criado com sucesso', deposito })
+    return res.status(201).json({ message: 'Depositante criado com sucesso', depositante })
   } catch (err) {
-    console.error('❌ Erro ao criar depósito:', err)
+    console.error('❌ Erro ao criar depositante:', err)
     res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }
 
-export async function deleteDeposito(req: DbInjectedRequest, res: Response) {
+export async function deleteDepositante(req: DbInjectedRequest, res: Response) {
   try {
-    const { id: kofrinhoId, depositoId } = req.params
+    const { id: kofrinhoId, depositanteId } = req.params
     const userId = req.userId
 
     const kofrinho = await getDbAsync<{ id: number }>(req,
@@ -102,34 +102,34 @@ export async function deleteDeposito(req: DbInjectedRequest, res: Response) {
       return res.status(404).json({ erro: 'Kofrinho não encontrado' })
     }
 
-    const deposito = await getDbAsync<{ id: number }>(req,
-      'SELECT id FROM depositos WHERE id = ? AND kofrinho_id = ?',
-      [depositoId, kofrinhoId]
+    const depositante = await getDbAsync<{ id: number }>(req,
+      'SELECT id FROM depositantes WHERE id = ? AND kofrinho_id = ?',
+      [depositanteId, kofrinhoId]
     )
-    if (!deposito) {
-      return res.status(404).json({ erro: 'Depósito não encontrado' })
+    if (!depositante) {
+      return res.status(404).json({ erro: 'Depositante não encontrado' })
     }
 
     const db = req.testDb
     if (db) {
       await new Promise<void>((resolve, reject) => {
-        db.run('DELETE FROM depositos WHERE id = ?', [depositoId], (err: Error | null) => {
+        db.run('DELETE FROM depositantes WHERE id = ?', [depositanteId], (err: Error | null) => {
           if (err) reject(err)
           else resolve()
         })
       })
     } else {
-      await runAsync('DELETE FROM depositos WHERE id = ?', [depositoId])
+      await runAsync('DELETE FROM depositantes WHERE id = ?', [depositanteId])
     }
 
-    return res.status(200).json({ message: 'Depósito removido com sucesso' })
+    return res.status(200).json({ message: 'Depositante removido com sucesso' })
   } catch (err) {
-    console.error('❌ Erro ao deletar depósito:', err)
+    console.error('❌ Erro ao deletar depositante:', err)
     res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }
 
-export async function listDepositos(req: DbInjectedRequest, res: Response) {
+export async function listDepositantes(req: DbInjectedRequest, res: Response) {
   try {
     const { id: kofrinhoId } = req.params
     const userId = req.userId
@@ -142,14 +142,14 @@ export async function listDepositos(req: DbInjectedRequest, res: Response) {
       return res.status(404).json({ erro: 'Kofrinho não encontrado' })
     }
 
-    const depositos = await allDbAsync<Deposito>(req,
-      'SELECT id, kofrinho_id, nome, valor, recorrencia, criado_em FROM depositos WHERE kofrinho_id = ? ORDER BY criado_em DESC',
+    const depositantes = await allDbAsync<Depositante>(req,
+      'SELECT id, kofrinho_id, nome, valor, recorrencia, criado_em FROM depositantes WHERE kofrinho_id = ? ORDER BY criado_em DESC',
       [kofrinhoId]
     )
 
-    return res.status(200).json({ depositos })
+    return res.status(200).json({ depositantes })
   } catch (err) {
-    console.error('❌ Erro ao listar depósitos:', err)
+    console.error('❌ Erro ao listar depositantes:', err)
     res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }

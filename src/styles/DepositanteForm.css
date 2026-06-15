@@ -1,24 +1,24 @@
-.deposito-form {
+.depositante-form {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
-.deposito-form .form-group {
+.depositante-form .form-group {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   margin-bottom: 1rem;
 }
 
-.deposito-form .form-group label {
+.depositante-form .form-group label {
   font-weight: 600;
   color: #333;
   font-size: 0.9rem;
 }
 
-.deposito-form .form-group input,
-.deposito-form .form-group select {
+.depositante-form .form-group input,
+.depositante-form .form-group select {
   padding: 0.65rem 0.75rem;
   border: 1px solid #ddd;
   border-radius: 6px;
@@ -29,14 +29,14 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.deposito-form .form-group input:focus,
-.deposito-form .form-group select:focus {
+.depositante-form .form-group input:focus,
+.depositante-form .form-group select:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
 }
 
-.deposito-form .btn-primary {
+.depositante-form .btn-primary {
   padding: 0.7rem 1rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -49,17 +49,17 @@
   margin-top: 0.25rem;
 }
 
-.deposito-form .btn-primary:hover:not(:disabled) {
+.depositante-form .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
 }
 
-.deposito-form .btn-primary:disabled {
+.depositante-form .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.deposito-form .mensagem {
+.depositante-form .mensagem {
   margin-top: 0.75rem;
   padding: 0.65rem 1rem;
   border-radius: 6px;
@@ -69,13 +69,13 @@
   animation: slideIn 0.25s ease;
 }
 
-.deposito-form .mensagem.sucesso {
+.depositante-form .mensagem.sucesso {
   background: #d4edda;
   color: #155724;
   border: 1px solid #c3e6cb;
 }
 
-.deposito-form .mensagem.erro {
+.depositante-form .mensagem.erro {
   background: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;

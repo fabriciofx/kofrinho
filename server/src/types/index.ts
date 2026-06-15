@@ -18,7 +18,7 @@ export interface Kofrinho {
   criado_em: string
 }
 
-export interface Deposito {
+export interface Depositante {
   id: number
   kofrinho_id: number
   nome: string

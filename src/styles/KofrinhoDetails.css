@@ -260,7 +260,7 @@
   }
 }
 
-.depositos-section {
+.depositantes-section {
   background: white;
   border-radius: 12px;
   padding: 2rem;
@@ -270,14 +270,14 @@
   width: 100%;
 }
 
-.depositos-section h2 {
+.depositantes-section h2 {
   margin-top: 0;
   color: #333;
   font-size: 1.3rem;
   margin-bottom: 1.25rem;
 }
 
-.depositos-empty {
+.depositantes-empty {
   color: #888;
   font-size: 0.95rem;
   text-align: center;
@@ -285,13 +285,13 @@
   margin: 0;
 }
 
-.depositos-table {
+.depositantes-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.95rem;
 }
 
-.depositos-table th {
+.depositantes-table th {
   text-align: left;
   padding: 0.6rem 0.75rem;
   background: #f5f7fa;
@@ -303,27 +303,27 @@
   border-bottom: 2px solid #e0e6ed;
 }
 
-.depositos-table td {
+.depositantes-table td {
   padding: 0.75rem;
   color: #333;
   border-bottom: 1px solid #eee;
   vertical-align: middle;
 }
 
-.depositos-table tbody tr:last-child td {
+.depositantes-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-.depositos-table tbody tr:hover {
+.depositantes-table tbody tr:hover {
   background: #fafbff;
 }
 
-.deposito-actions {
+.depositante-actions {
   width: 40px;
   text-align: center;
 }
 
-.btn-delete-deposito {
+.btn-delete-depositante {
   background: none;
   border: none;
   cursor: pointer;
@@ -335,7 +335,7 @@
   line-height: 1;
 }
 
-.btn-delete-deposito:hover {
+.btn-delete-depositante:hover {
   opacity: 1;
   background: #fee2e2;
 }
@@ -367,12 +367,12 @@
     padding: 1rem;
   }
 
-  .depositos-section {
+  .depositantes-section {
     padding: 1.25rem;
   }
 
-  .depositos-table th,
-  .depositos-table td {
+  .depositantes-table th,
+  .depositantes-table td {
     padding: 0.6rem 0.5rem;
     font-size: 0.88rem;
   }

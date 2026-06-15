@@ -9,7 +9,7 @@ export interface Kofrinho {
   criado_em: string
 }
 
-export interface Deposito {
+export interface Depositante {
   id: number
   kofrinho_id: number
   nome: string
@@ -21,7 +21,7 @@ export interface Deposito {
 interface KofrinhoContextType {
   kofrinhos: Kofrinho[]
   selectedKofrinho: Kofrinho | null
-  depositos: Deposito[]
+  depositantes: Depositante[]
   loading: boolean
   error: string | null
 
@@ -31,9 +31,9 @@ interface KofrinhoContextType {
   updateKofrinho: (id: number, nome?: string, descricao?: string) => Promise<void>
   deleteKofrinho: (id: number) => Promise<void>
   clearSelected: () => void
-  createDeposito: (kofrinhoId: number, nome: string, valor: number, recorrencia: string) => Promise<void>
-  fetchDepositos: (kofrinhoId: number) => Promise<void>
-  deleteDeposito: (kofrinhoId: number, depositoId: number) => Promise<void>
+  createDepositante: (kofrinhoId: number, nome: string, valor: number, recorrencia: string) => Promise<void>
+  fetchDepositantes: (kofrinhoId: number) => Promise<void>
+  deleteDepositante: (kofrinhoId: number, depositanteId: number) => Promise<void>
 }
 
 const KofrinhoContext = createContext<KofrinhoContextType | undefined>(undefined)
@@ -41,7 +41,7 @@ const KofrinhoContext = createContext<KofrinhoContextType | undefined>(undefined
 export function KofrinhoProvider({ children }: { children: ReactNode }) {
   const [kofrinhos, setKofrinhos] = useState<Kofrinho[]>([])
   const [selectedKofrinho, setSelectedKofrinho] = useState<Kofrinho | null>(null)
-  const [depositos, setDepositos] = useState<Deposito[]>([])
+  const [depositantes, setDepositantes] = useState<Depositante[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -134,15 +134,15 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
 
   const clearSelected = () => {
     setSelectedKofrinho(null)
-    setDepositos([])
+    setDepositantes([])
   }
 
-  const createDeposito = useCallback(async (kofrinhoId: number, nome: string, valor: number, recorrencia: string) => {
+  const createDepositante = useCallback(async (kofrinhoId: number, nome: string, valor: number, recorrencia: string) => {
     setLoading(true)
     try {
-      await api.createDeposito(kofrinhoId, nome, valor, recorrencia)
+      await api.createDepositante(kofrinhoId, nome, valor, recorrencia)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao criar depósito'
+      const message = err instanceof Error ? err.message : 'Erro ao criar depositante'
       setError(message)
       throw err
     } finally {
@@ -150,23 +150,23 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const deleteDeposito = useCallback(async (kofrinhoId: number, depositoId: number) => {
+  const deleteDepositante = useCallback(async (kofrinhoId: number, depositanteId: number) => {
     try {
-      await api.deleteDeposito(kofrinhoId, depositoId)
-      setDepositos(prev => prev.filter(d => d.id !== depositoId))
+      await api.deleteDepositante(kofrinhoId, depositanteId)
+      setDepositantes(prev => prev.filter(d => d.id !== depositanteId))
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao remover depósito'
+      const message = err instanceof Error ? err.message : 'Erro ao remover depositante'
       setError(message)
       throw err
     }
   }, [])
 
-  const fetchDepositos = useCallback(async (kofrinhoId: number) => {
+  const fetchDepositantes = useCallback(async (kofrinhoId: number) => {
     try {
-      const data = await api.listDepositos(kofrinhoId)
-      setDepositos(data)
+      const data = await api.listDepositantes(kofrinhoId)
+      setDepositantes(data)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao carregar depósitos'
+      const message = err instanceof Error ? err.message : 'Erro ao carregar depositantes'
       setError(message)
     }
   }, [])
@@ -174,7 +174,7 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
   const value: KofrinhoContextType = {
     kofrinhos,
     selectedKofrinho,
-    depositos,
+    depositantes,
     loading,
     error,
 
@@ -184,9 +184,9 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     updateKofrinho,
     deleteKofrinho,
     clearSelected,
-    createDeposito,
-    fetchDepositos,
-    deleteDeposito,
+    createDepositante,
+    fetchDepositantes,
+    deleteDepositante,
   }
 
   return <KofrinhoContext.Provider value={value}>{children}</KofrinhoContext.Provider>

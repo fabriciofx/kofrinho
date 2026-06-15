@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useKofrinho } from '../context/KofrinhoContext'
-import '../styles/DepositoForm.css'
+import '../styles/DepositanteForm.css'
 
-interface DepositoFormProps {
+interface DepositanteFormProps {
   kofrinhoId: number
   onSuccess?: () => void
 }
@@ -14,8 +14,8 @@ const RECORRENCIAS = [
   { value: 'anual', label: 'Anual' },
 ]
 
-function DepositoForm({ kofrinhoId, onSuccess }: DepositoFormProps) {
-  const { createDeposito, loading } = useKofrinho()
+function DepositanteForm({ kofrinhoId, onSuccess }: DepositanteFormProps) {
+  const { createDepositante, loading } = useKofrinho()
   const [nome, setNome] = useState('')
   const [valor, setValor] = useState('')
   const [recorrencia, setRecorrencia] = useState('mensal')
@@ -32,23 +32,23 @@ function DepositoForm({ kofrinhoId, onSuccess }: DepositoFormProps) {
     }
 
     try {
-      await createDeposito(kofrinhoId, nome.trim(), valorNum, recorrencia)
-      setMensagem('Depósito criado com sucesso!')
+      await createDepositante(kofrinhoId, nome.trim(), valorNum, recorrencia)
+      setMensagem('Depositante criado com sucesso!')
       setNome('')
       setValor('')
       setRecorrencia('mensal')
       if (onSuccess) setTimeout(() => onSuccess(), 1200)
     } catch (err) {
-      setMensagem(err instanceof Error ? err.message : 'Erro ao criar depósito')
+      setMensagem(err instanceof Error ? err.message : 'Erro ao criar depositante')
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="deposito-form">
+    <form onSubmit={handleSubmit} className="depositante-form">
       <div className="form-group">
-        <label htmlFor="deposito-nome">Nome</label>
+        <label htmlFor="depositante-nome">Nome</label>
         <input
-          id="deposito-nome"
+          id="depositante-nome"
           type="text"
           placeholder="Ex: Aporte mensal, Bônus, Salário"
           value={nome}
@@ -58,9 +58,9 @@ function DepositoForm({ kofrinhoId, onSuccess }: DepositoFormProps) {
       </div>
 
       <div className="form-group">
-        <label htmlFor="deposito-valor">Valor (R$)</label>
+        <label htmlFor="depositante-valor">Valor (R$)</label>
         <input
-          id="deposito-valor"
+          id="depositante-valor"
           type="number"
           placeholder="0,00"
           min="0.01"
@@ -72,9 +72,9 @@ function DepositoForm({ kofrinhoId, onSuccess }: DepositoFormProps) {
       </div>
 
       <div className="form-group">
-        <label htmlFor="deposito-recorrencia">Recorrência</label>
+        <label htmlFor="depositante-recorrencia">Recorrência</label>
         <select
-          id="deposito-recorrencia"
+          id="depositante-recorrencia"
           value={recorrencia}
           onChange={(e) => setRecorrencia(e.target.value)}
         >
@@ -85,7 +85,7 @@ function DepositoForm({ kofrinhoId, onSuccess }: DepositoFormProps) {
       </div>
 
       <button type="submit" className="btn-primary" disabled={loading}>
-        {loading ? 'Salvando...' : 'Criar Depósito'}
+        {loading ? 'Salvando...' : 'Criar Depositante'}
       </button>
 
       {mensagem && (
@@ -97,4 +97,4 @@ function DepositoForm({ kofrinhoId, onSuccess }: DepositoFormProps) {
   )
 }
 
-export default DepositoForm
+export default DepositanteForm

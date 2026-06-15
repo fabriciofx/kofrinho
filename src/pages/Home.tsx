@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useKofrinho } from '../context/KofrinhoContext'
 import { AvatarUpload } from '../components/AvatarUpload'
 import KofrinhoForm from '../components/KofrinhoForm'
-import DepositoForm from '../components/DepositoForm'
+import DepositanteForm from '../components/DepositanteForm'
 import { Modal } from '../components/Modal'
 import '../styles/Auth.css'
 import '../styles/Dashboard.css'
@@ -21,7 +21,7 @@ export default function Home() {
   })
   const [message, setMessage] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [depositoKofrinhoId, setDepositoKofrinhoId] = useState<number | null>(null)
+  const [depositanteKofrinhoId, setDepositanteKofrinhoId] = useState<number | null>(null)
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -143,10 +143,10 @@ export default function Home() {
                           Ver Detalhes
                         </button>
                         <button
-                          onClick={() => setDepositoKofrinhoId(kofrinho.id)}
-                          className="btn-deposito"
+                          onClick={() => setDepositanteKofrinhoId(kofrinho.id)}
+                          className="btn-depositante"
                         >
-                          Criar Depósito
+                          Criar Depositante
                         </button>
                         <button
                           onClick={() => handleDeleteKofrinho(kofrinho.id)}
@@ -170,14 +170,14 @@ export default function Home() {
             </Modal>
 
             <Modal
-              isOpen={depositoKofrinhoId !== null}
-              onClose={() => setDepositoKofrinhoId(null)}
-              title="Criar Depósito"
+              isOpen={depositanteKofrinhoId !== null}
+              onClose={() => setDepositanteKofrinhoId(null)}
+              title="Criar Depositante"
             >
-              {depositoKofrinhoId !== null && (
-                <DepositoForm
-                  kofrinhoId={depositoKofrinhoId}
-                  onSuccess={() => setDepositoKofrinhoId(null)}
+              {depositanteKofrinhoId !== null && (
+                <DepositanteForm
+                  kofrinhoId={depositanteKofrinhoId}
+                  onSuccess={() => setDepositanteKofrinhoId(null)}
                 />
               )}
             </Modal>

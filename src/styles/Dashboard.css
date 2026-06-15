@@ -204,7 +204,7 @@
   box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
 }
 
-.btn-deposito {
+.btn-depositante {
   padding: 0.5rem 0.75rem;
   background: linear-gradient(135deg, #28a745 0%, #20883a 100%);
   color: white;
@@ -216,7 +216,7 @@
   font-size: 0.9rem;
 }
 
-.btn-deposito:hover {
+.btn-depositante:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
 }

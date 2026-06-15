@@ -13,7 +13,7 @@ const RECORRENCIA_LABEL: Record<string, string> = {
 function KofrinhoDetails() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { selectedKofrinho, depositos, loading, error, selectKofrinho, updateKofrinho, deleteKofrinho, fetchDepositos, deleteDeposito } = useKofrinho()
+  const { selectedKofrinho, depositantes, loading, error, selectKofrinho, updateKofrinho, deleteKofrinho, fetchDepositantes, deleteDepositante } = useKofrinho()
   const [descricao, setDescricao] = useState('')
   const [nome, setNome] = useState('')
   const [mensagem, setMensagem] = useState('')
@@ -22,9 +22,9 @@ function KofrinhoDetails() {
   useEffect(() => {
     if (id) {
       selectKofrinho(parseInt(id))
-      fetchDepositos(parseInt(id))
+      fetchDepositantes(parseInt(id))
     }
-  }, [id, selectKofrinho, fetchDepositos])
+  }, [id, selectKofrinho, fetchDepositantes])
 
   useEffect(() => {
     if (selectedKofrinho) {
@@ -231,13 +231,13 @@ function KofrinhoDetails() {
         </div>
       )}
 
-      <div className="depositos-section">
-        <h2>Depósitos</h2>
+      <div className="depositantes-section">
+        <h2>Depositantes</h2>
 
-        {depositos.length === 0 ? (
-          <p className="depositos-empty">Nenhum depósito cadastrado ainda.</p>
+        {depositantes.length === 0 ? (
+          <p className="depositantes-empty">Nenhum depositante cadastrado ainda.</p>
         ) : (
-          <table className="depositos-table">
+          <table className="depositantes-table">
             <thead>
               <tr>
                 <th>Nome</th>
@@ -247,21 +247,21 @@ function KofrinhoDetails() {
               </tr>
             </thead>
             <tbody>
-              {depositos.map((d) => (
+              {depositantes.map((d) => (
                 <tr key={d.id}>
                   <td>{d.nome}</td>
                   <td>
                     {d.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </td>
                   <td>{RECORRENCIA_LABEL[d.recorrencia] ?? d.recorrencia}</td>
-                  <td className="deposito-actions">
+                  <td className="depositante-actions">
                     <button
-                      className="btn-delete-deposito"
-                      title="Remover depósito"
+                      className="btn-delete-depositante"
+                      title="Remover depositante"
                       onClick={async () => {
-                        if (!confirm('Remover este depósito?')) return
+                        if (!confirm('Remover este depositante?')) return
                         try {
-                          await deleteDeposito(selectedKofrinho!.id, d.id)
+                          await deleteDepositante(selectedKofrinho!.id, d.id)
                         } catch {
                           /* error already set in context */
                         }

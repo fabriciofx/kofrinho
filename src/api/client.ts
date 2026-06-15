@@ -34,7 +34,7 @@ export interface KofrinhoResponse {
   kofrinhos?: Kofrinho[]
 }
 
-export interface Deposito {
+export interface Depositante {
   id: number
   kofrinho_id: number
   nome: string
@@ -248,14 +248,14 @@ export async function deleteKofrinho(id: number): Promise<{ message: string }> {
   return handleResponse<{ message: string }>(response)
 }
 
-// Deposito endpoints
-export async function createDeposito(
+// Depositante endpoints
+export async function createDepositante(
   kofrinhoId: number,
   nome: string,
   valor: number,
   recorrencia: string
-): Promise<{ message: string; deposito: Deposito }> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositos`, {
+): Promise<{ message: string; depositante: Depositante }> {
+  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -266,8 +266,8 @@ export async function createDeposito(
   return handleResponse(response)
 }
 
-export async function deleteDeposito(kofrinhoId: number, depositoId: number): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositos/${depositoId}`, {
+export async function deleteDepositante(kofrinhoId: number, depositanteId: number): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes/${depositanteId}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -277,15 +277,15 @@ export async function deleteDeposito(kofrinhoId: number, depositoId: number): Pr
   return handleResponse(response)
 }
 
-export async function listDepositos(kofrinhoId: number): Promise<Deposito[]> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositos`, {
+export async function listDepositantes(kofrinhoId: number): Promise<Depositante[]> {
+  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes`, {
     headers: {
       'Content-Type': 'application/json',
       ...getAuthHeaders()
     }
   })
-  const data = await handleResponse<{ depositos: Deposito[] }>(response)
-  return data.depositos
+  const data = await handleResponse<{ depositantes: Depositante[] }>(response)
+  return data.depositantes
 }
 
 // Avatar endpoints

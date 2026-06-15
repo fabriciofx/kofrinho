@@ -7,7 +7,7 @@ import {
   updateKofrinho,
   deleteKofrinho
 } from '../controllers/kofrinhoController.js'
-import { createDeposito, listDepositos, deleteDeposito } from '../controllers/depositoController.js'
+import { createDepositante, listDepositantes, deleteDepositante } from '../controllers/depositanteController.js'
 
 const router = express.Router()
 
@@ -19,8 +19,8 @@ router.get('/:id', getKofrinho)
 router.put('/:id', updateKofrinho)
 router.delete('/:id', deleteKofrinho)
 
-router.post('/:id/depositos', createDeposito)
-router.get('/:id/depositos', listDepositos)
-router.delete('/:id/depositos/:depositoId', deleteDeposito)
+router.post('/:id/depositantes', createDepositante)
+router.get('/:id/depositantes', listDepositantes)
+router.delete('/:id/depositantes/:depositanteId', deleteDepositante)
 
 export default router
