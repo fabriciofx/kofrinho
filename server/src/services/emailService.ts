@@ -57,7 +57,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
     const t = await getTransporter()
 
     const info = await t.sendMail({
-      from: process.env.EMAIL_FROM || 'noreply@kofrinho.com',
+      from: process.env.EMAIL_FROM || 'noreply@mandacaru.org',
       to: options.to,
       subject: options.subject,
       html: options.html,
@@ -133,7 +133,7 @@ export async function sendAgendamentoEmail(
 
   const resend = new Resend(carregarResendApiKey())
   const { error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM || 'Kofrinho <noreply@kofrinho.com>',
+    from: process.env.EMAIL_FROM || 'Kofrinho <noreply@mandacaru.org>',
     to: emailDepositante,
     subject,
     html,
