@@ -16,8 +16,12 @@ const __dirname = path.dirname(__filename)
 const app = express()
 const PORT = 3000
 
+const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim())
+
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins,
   credentials: true
 }))
 

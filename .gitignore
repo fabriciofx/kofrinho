@@ -25,4 +25,5 @@ stats.html
 *.sw?
 .confrapix
 .resend
+.env
 tests

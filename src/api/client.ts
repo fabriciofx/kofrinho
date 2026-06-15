@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api'
 
 export interface AuthTokens {
   token: string
@@ -89,15 +89,49 @@ function getAuthHeaders(): Record<string, string> {
   }
 }
 
+async function apiFetch(url: string, options?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, options)
+  } catch (err) {
+    if (err instanceof TypeError) {
+      throw new Error(
+        `Não foi possível conectar ao servidor (${API_BASE_URL}). ` +
+        'Verifique se o servidor está em execução e se o endereço está correto.'
+      )
+    }
+    throw err
+  }
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (response.status === 401) {
     setStoredTokens(null)
-    throw new Error('Token expirado. Faça login novamente.')
+    throw new Error('Sessão expirada. Faça login novamente.')
+  }
+
+  if (response.status === 403) {
+    throw new Error('Acesso negado.')
+  }
+
+  if (response.status === 404) {
+    const contentType = response.headers.get('content-type') ?? ''
+    if (contentType.includes('application/json')) {
+      const data = await response.json()
+      throw new Error(data.erro || 'Recurso não encontrado.')
+    }
+    throw new Error('Recurso não encontrado.')
+  }
+
+  if (response.status >= 500) {
+    throw new Error(`Erro interno do servidor (${response.status}). Tente novamente mais tarde.`)
   }
 
   const contentType = response.headers.get('content-type') ?? ''
   if (!contentType.includes('application/json')) {
-    throw new Error(`Erro ${response.status}: resposta inesperada do servidor`)
+    throw new Error(
+      `Resposta inesperada do servidor (status ${response.status}). ` +
+      'O servidor pode estar retornando HTML em vez de JSON.'
+    )
   }
 
   const data = await response.json()
@@ -115,7 +149,7 @@ export async function register(
   email: string,
   senha: string
 ): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+  const response = await apiFetch(`${API_BASE_URL}/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -132,7 +166,7 @@ export async function register(
 }
 
 export async function login(email: string, senha: string): Promise<AuthResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  const response = await apiFetch(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -154,7 +188,7 @@ export async function refreshAccessToken(): Promise<string> {
     throw new Error('Sem refresh token')
   }
 
-  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+  const response = await apiFetch(`${API_BASE_URL}/auth/refresh`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -171,7 +205,7 @@ export async function refreshAccessToken(): Promise<string> {
 }
 
 export async function requestPasswordReset(email: string): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+  const response = await apiFetch(`${API_BASE_URL}/auth/forgot-password`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -183,7 +217,7 @@ export async function requestPasswordReset(email: string): Promise<{ message: st
 }
 
 export async function resetPassword(token: string, novaSenha: string): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+  const response = await apiFetch(`${API_BASE_URL}/auth/reset-password`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -196,7 +230,7 @@ export async function resetPassword(token: string, novaSenha: string): Promise<{
 
 // Kofrinho endpoints
 export async function createKofrinho(nome: string, descricao?: string): Promise<KofrinhoResponse> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos`, {
+  const response = await apiFetch(`${API_BASE_URL}/kofrinhos`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -209,7 +243,7 @@ export async function createKofrinho(nome: string, descricao?: string): Promise<
 }
 
 export async function listKofrinhos(): Promise<Kofrinho[]> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos`, {
+  const response = await apiFetch(`${API_BASE_URL}/kofrinhos`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -222,7 +256,7 @@ export async function listKofrinhos(): Promise<Kofrinho[]> {
 }
 
 export async function getKofrinho(id: number): Promise<Kofrinho> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL}/kofrinhos/${id}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -235,7 +269,7 @@ export async function getKofrinho(id: number): Promise<Kofrinho> {
 }
 
 export async function updateKofrinho(id: number, nome?: string, descricao?: string): Promise<KofrinhoResponse> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL}/kofrinhos/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -248,7 +282,7 @@ export async function updateKofrinho(id: number, nome?: string, descricao?: stri
 }
 
 export async function deleteKofrinho(id: number): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos/${id}`, {
+  const response = await apiFetch(`${API_BASE_URL}/kofrinhos/${id}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -268,7 +302,7 @@ export async function createDepositante(
   email?: string,
   telefone?: string
 ): Promise<{ message: string; depositante: Depositante }> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes`, {
+  const response = await apiFetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -292,7 +326,7 @@ export async function updateDepositante(
   depositanteId: number,
   data: DepositanteUpdate
 ): Promise<{ message: string; depositante: Depositante }> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes/${depositanteId}`, {
+  const response = await apiFetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes/${depositanteId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -304,7 +338,7 @@ export async function updateDepositante(
 }
 
 export async function deleteDepositante(kofrinhoId: number, depositanteId: number): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes/${depositanteId}`, {
+  const response = await apiFetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes/${depositanteId}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -315,7 +349,7 @@ export async function deleteDepositante(kofrinhoId: number, depositanteId: numbe
 }
 
 export async function listDepositantes(kofrinhoId: number): Promise<Depositante[]> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes`, {
+  const response = await apiFetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes`, {
     headers: {
       'Content-Type': 'application/json',
       ...getAuthHeaders()
@@ -326,7 +360,7 @@ export async function listDepositantes(kofrinhoId: number): Promise<Depositante[
 }
 
 export async function listPagamentos(kofrinhoId: number): Promise<Pagamento[]> {
-  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/pagamentos`, {
+  const response = await apiFetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/pagamentos`, {
     headers: {
       'Content-Type': 'application/json',
       ...getAuthHeaders()
@@ -341,7 +375,7 @@ export async function uploadAvatar(file: File): Promise<{ message: string; user:
   const formData = new FormData()
   formData.append('avatar', file)
 
-  const response = await fetch(`${API_BASE_URL}/avatars/upload`, {
+  const response = await apiFetch(`${API_BASE_URL}/avatars/upload`, {
     method: 'POST',
     headers: {
       ...getAuthHeaders()
@@ -353,7 +387,7 @@ export async function uploadAvatar(file: File): Promise<{ message: string; user:
 }
 
 export async function deleteAvatar(): Promise<{ message: string; user: User }> {
-  const response = await fetch(`${API_BASE_URL}/avatars`, {
+  const response = await apiFetch(`${API_BASE_URL}/avatars`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
