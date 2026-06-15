@@ -9,6 +9,7 @@ export function setupTestDb(): Promise<sqlite3.Database> {
       }
 
       db.configure('busyTimeout', 10000)
+      db.run('PRAGMA foreign_keys = ON')
 
       const schema = `
         CREATE TABLE IF NOT EXISTS users (
@@ -35,6 +36,36 @@ export function setupTestDb(): Promise<sqlite3.Database> {
         );
 
         CREATE INDEX IF NOT EXISTS idx_kofrinhos_user_id ON kofrinhos(user_id);
+
+        CREATE TABLE IF NOT EXISTS depositantes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          kofrinho_id INTEGER NOT NULL,
+          nome TEXT NOT NULL,
+          valor REAL NOT NULL,
+          recorrencia TEXT NOT NULL CHECK(recorrencia IN ('anual', 'mensal', 'semanal', 'diario')),
+          criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (kofrinho_id) REFERENCES kofrinhos(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_depositantes_kofrinho_id ON depositantes(kofrinho_id);
+
+        CREATE TABLE IF NOT EXISTS agendamentos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          depositante_id INTEGER NOT NULL,
+          kofrinho_id INTEGER NOT NULL,
+          user_id INTEGER NOT NULL,
+          recorrencia TEXT NOT NULL CHECK(recorrencia IN ('anual', 'mensal', 'semanal', 'diario')),
+          proxima_execucao DATETIME NOT NULL,
+          ultima_execucao DATETIME,
+          ativo INTEGER NOT NULL DEFAULT 1,
+          criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (depositante_id) REFERENCES depositantes(id) ON DELETE CASCADE,
+          FOREIGN KEY (kofrinho_id) REFERENCES kofrinhos(id) ON DELETE CASCADE,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_agendamentos_depositante_id ON agendamentos(depositante_id);
+        CREATE INDEX IF NOT EXISTS idx_agendamentos_proxima_execucao ON agendamentos(proxima_execucao);
       `
 
       db.exec(schema, (err) => {

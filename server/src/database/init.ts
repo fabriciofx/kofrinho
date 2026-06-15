@@ -55,6 +55,33 @@ export async function initializeDatabase() {
       ON depositantes(kofrinho_id)
     `)
 
+    await runAsync(`
+      CREATE TABLE IF NOT EXISTS agendamentos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        depositante_id INTEGER NOT NULL,
+        kofrinho_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        recorrencia TEXT NOT NULL CHECK(recorrencia IN ('anual', 'mensal', 'semanal', 'diario')),
+        proxima_execucao DATETIME NOT NULL,
+        ultima_execucao DATETIME,
+        ativo INTEGER NOT NULL DEFAULT 1,
+        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (depositante_id) REFERENCES depositantes(id) ON DELETE CASCADE,
+        FOREIGN KEY (kofrinho_id) REFERENCES kofrinhos(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `)
+
+    await runAsync(`
+      CREATE INDEX IF NOT EXISTS idx_agendamentos_depositante_id
+      ON agendamentos(depositante_id)
+    `)
+
+    await runAsync(`
+      CREATE INDEX IF NOT EXISTS idx_agendamentos_proxima_execucao
+      ON agendamentos(proxima_execucao)
+    `)
+
     console.log('✅ Banco de dados inicializado com sucesso')
   } catch (err) {
     console.error('❌ Erro ao inicializar banco:', err)

@@ -3,6 +3,7 @@ import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { initializeDatabase } from './database/init.js'
+import { iniciarAgendador } from './services/schedulerService.js'
 import authRoutes from './routes/authRoutes.js'
 import kofrinhoRoutes from './routes/kofrinhoRoutes.js'
 import avatarRoutes from './routes/avatarRoutes.js'
@@ -43,6 +44,7 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando em http://localhost:${PORT}`)
       console.log(`📊 Documentação: http://localhost:${PORT}/api/health`)
+      iniciarAgendador()
     })
   } catch (err) {
     console.error('❌ Falha ao iniciar servidor:', err)

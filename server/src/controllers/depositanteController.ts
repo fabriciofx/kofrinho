@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { getAsync, allAsync, runAsync, runAsyncWithLastId } from '../database/db.js'
 import { AuthRequest } from '../middleware/auth.js'
 import { Depositante } from '../types/index.js'
+import { calcularProximaExecucao, type Recorrencia } from '../services/schedulerService.js'
 
 interface DbInjectedRequest extends AuthRequest {
   testDb?: any
@@ -31,6 +32,19 @@ function allDbAsync<T>(req: any, sql: string, params: any[]) {
     })
   }
   return allAsync<T>(sql, params)
+}
+
+function runDbAsync(req: any, sql: string, params: any[]): Promise<void> {
+  const db = req.testDb
+  if (db) {
+    return new Promise<void>((resolve, reject) => {
+      db.run(sql, params, (err: Error | null) => {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+  }
+  return runAsync(sql, params)
 }
 
 function runDbAsyncWithLastId(req: any, sql: string, params: any[]): Promise<number> {
@@ -80,6 +94,12 @@ export async function createDepositante(req: DbInjectedRequest, res: Response) {
     const depositante = await getDbAsync<Depositante>(req,
       'SELECT id, kofrinho_id, nome, valor, recorrencia, criado_em FROM depositantes WHERE id = ?',
       [lastId]
+    )
+
+    const proxima = calcularProximaExecucao(recorrencia as Recorrencia).toISOString()
+    await runDbAsync(req,
+      'INSERT INTO agendamentos (depositante_id, kofrinho_id, user_id, recorrencia, proxima_execucao) VALUES (?, ?, ?, ?, ?)',
+      [lastId, kofrinhoId, userId, recorrencia, proxima]
     )
 
     return res.status(201).json({ message: 'Depositante criado com sucesso', depositante })

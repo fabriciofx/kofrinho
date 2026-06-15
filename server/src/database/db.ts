@@ -11,6 +11,7 @@ export const db = new sqlite3.Database(dbPath, (err) => {
     console.error('❌ Erro ao conectar ao banco:', err)
   } else {
     console.log('✅ Conectado ao SQLite:', dbPath)
+    db.run('PRAGMA foreign_keys = ON')
   }
 })
 

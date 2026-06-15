@@ -27,6 +27,18 @@ export interface Depositante {
   criado_em: string
 }
 
+export interface Agendamento {
+  id: number
+  depositante_id: number
+  kofrinho_id: number
+  user_id: number
+  recorrencia: 'anual' | 'mensal' | 'semanal' | 'diario'
+  proxima_execucao: string
+  ultima_execucao: string | null
+  ativo: number
+  criado_em: string
+}
+
 export interface JwtPayload {
   id: number
   email: string
