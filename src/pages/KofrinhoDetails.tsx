@@ -212,24 +212,24 @@ function KofrinhoDetails() {
             </div>
           </>
         ) : (
-          <>
-            <div className="info-group">
-              <span className="label">Nome:</span>
-              <span className="value">{selectedKofrinho!.nome}</span>
+          <div className="kofrinho-info-row">
+            <div className="kofrinho-info-col">
+              <span className="info-label">Nome</span>
+              <span className="info-value">{selectedKofrinho!.nome}</span>
             </div>
             {selectedKofrinho!.descricao && (
-              <div className="info-group">
-                <span className="label">Descrição:</span>
-                <span className="value">{selectedKofrinho!.descricao}</span>
+              <div className="kofrinho-info-col">
+                <span className="info-label">Descrição</span>
+                <span className="info-value">{selectedKofrinho!.descricao}</span>
               </div>
             )}
-            <div className="info-group">
-              <span className="label">Data de Criação:</span>
-              <span className="value">
+            <div className="kofrinho-info-col">
+              <span className="info-label">Criado em</span>
+              <span className="info-value">
                 {new Date(selectedKofrinho!.criado_em).toLocaleDateString('pt-BR')}
               </span>
             </div>
-          </>
+          </div>
         )}
       </div>
 

@@ -83,11 +83,12 @@
 .kofrinho-card {
   background: white;
   border-radius: 12px;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  max-width: 300px;
+  width: fit-content;
+  min-width: 280px;
+  max-width: 100%;
   margin: 0 auto 1.5rem;
-  width: 100%;
 }
 
 .kofrinho-card-header {
@@ -166,27 +167,34 @@
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.info-group {
+.kofrinho-info-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 0;
-  border-bottom: 1px solid #eee;
+  gap: 1.5rem;
+  align-items: flex-start;
 }
 
-.info-group:last-of-type {
-  border-bottom: none;
+.kofrinho-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
 }
 
-.info-group .label {
+.info-label {
+  font-size: 0.7rem;
   font-weight: 600;
-  color: #555;
-  font-size: 0.95rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.info-group .value {
+.info-value {
+  font-size: 0.9rem;
   color: #333;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .action-buttons {
