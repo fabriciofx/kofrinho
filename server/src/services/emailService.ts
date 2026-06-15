@@ -1,8 +1,5 @@
 import nodemailer from 'nodemailer'
 import { Resend } from 'resend'
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
 
 export interface EmailOptions {
   to: string
@@ -104,17 +101,11 @@ export async function sendPasswordResetEmail(email: string, resetToken: string, 
 // ── Resend (e-mails de agendamento) ──────────────────────────────────────────
 
 function carregarResendApiKey(): string {
-  if (process.env.RESEND_API_KEY) return process.env.RESEND_API_KEY
+  if (process.env.RESEND_TOKEN) return process.env.RESEND_TOKEN
 
-  try {
-    const thisDir = path.dirname(fileURLToPath(import.meta.url))
-    const rootDir = path.resolve(thisDir, '../../..')
-    return fs.readFileSync(path.join(rootDir, '.resend'), 'utf-8').trim()
-  } catch {
-    throw new Error(
-      'Resend API key não encontrado. Configure RESEND_API_KEY ou crie o arquivo .resend na raiz do projeto.'
-    )
-  }
+  throw new Error(
+    'Resend API key não encontrado. Configure RESEND_TOKEN no arquivo .env do servidor.'
+  )
 }
 
 export async function sendAgendamentoEmail(
