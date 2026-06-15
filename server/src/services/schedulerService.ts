@@ -66,13 +66,20 @@ function runDbAsync(db: sqlite3.Database | undefined, sql: string, params: any[]
   return runAsync(sql, params)
 }
 
+let isProcessing = false
+
 export async function processarAgendamentos(
   db?: sqlite3.Database,
   sendFn: EmailSendFn = sendAgendamentoEmail,
   confrapixFn: ConfrapixFn = chamarConfrapix
 ): Promise<number> {
+  if (isProcessing) return 0
+  isProcessing = true
+
   const agora = new Date()
   const now = agora.toISOString()
+
+  try {
 
   const pendentes = await allDbAsync<AgendamentoPendente>(db,
     `SELECT a.id, a.recorrencia,
@@ -130,6 +137,9 @@ export async function processarAgendamentos(
   }
 
   return enviados
+  } finally {
+    isProcessing = false
+  }
 }
 
 const POLL_INTERVAL_MS = 1_000
