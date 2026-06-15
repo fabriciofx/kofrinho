@@ -44,7 +44,7 @@ export function construirPayloadConfrapix(
     amount: valor,
     description: descricaoKofrinho || '',
     expiration_date: formatarDataExpiracao(agora),
-    callback_url: `https://mandacaru.org:3333/kofrinho/${kofrinhoId}/depositante/${depositanteId}`,
+    callback_url: `${process.env.KOFRINHO_API_URL}/kofrinho/${kofrinhoId}/depositante/${depositanteId}`,
   }
 }
 

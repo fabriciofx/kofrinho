@@ -104,6 +104,9 @@ describe('formatarDataExpiracao', () => {
 describe('construirPayloadConfrapix', () => {
   const agora = new Date('2025-06-15T08:00:00.000Z')
 
+  beforeEach(() => { process.env.KOFRINHO_API_URL = 'https://api.mandacaru.org' })
+  afterEach(() => { delete process.env.KOFRINHO_API_URL })
+
   test('amount é o valor do depositante', () => {
     const p = construirPayloadConfrapix(2500, null, 1, 1, agora)
     expect(p.amount).toBe(2500)
@@ -126,7 +129,7 @@ describe('construirPayloadConfrapix', () => {
 
   test('callback_url contém kofrinho_id e depositante_id', () => {
     const p = construirPayloadConfrapix(100, null, 42, 7, agora)
-    expect(p.callback_url).toBe('https://mandacaru.org:3333/kofrinho/42/depositante/7')
+    expect(p.callback_url).toBe('https://api.mandacaru.org/kofrinho/42/depositante/7')
   })
 })
 
@@ -177,6 +180,7 @@ describe('processarAgendamentos', () => {
 
   beforeEach(async () => {
     db = await setupTestDb()
+    process.env.KOFRINHO_API_URL = 'https://api.mandacaru.org'
     mockSendFn = jest.fn().mockImplementation(() => Promise.resolve())
     mockConfrapixFn = jest.fn().mockImplementation(() => Promise.resolve({
       pixUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
@@ -191,6 +195,7 @@ describe('processarAgendamentos', () => {
   afterEach(async () => {
     await closeTestDb(db)
     jest.clearAllMocks()
+    delete process.env.KOFRINHO_API_URL
   })
 
   // ── Comportamento geral ───────────────────────────────────────────────────
@@ -374,7 +379,7 @@ describe('processarAgendamentos', () => {
     expect(payload.amount).toBe(1500)
     expect(payload.description).toBe('Férias 2025')
     expect(payload.callback_url).toBe(
-      `https://mandacaru.org:3333/kofrinho/${kfId}/depositante/${depId}`
+      `https://api.mandacaru.org/kofrinho/${kfId}/depositante/${depId}`
     )
     expect(payload.expiration_date).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
   })
