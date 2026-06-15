@@ -23,5 +23,6 @@ stats.html
 *.njsproj
 *.sln
 *.sw?
-.token
+.confrapix
+.resend
 tests
