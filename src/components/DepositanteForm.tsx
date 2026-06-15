@@ -19,6 +19,8 @@ function DepositanteForm({ kofrinhoId, onSuccess }: DepositanteFormProps) {
   const [nome, setNome] = useState('')
   const [valor, setValor] = useState('')
   const [recorrencia, setRecorrencia] = useState('mensal')
+  const [email, setEmail] = useState('')
+  const [telefone, setTelefone] = useState('')
   const [mensagem, setMensagem] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,11 +34,20 @@ function DepositanteForm({ kofrinhoId, onSuccess }: DepositanteFormProps) {
     }
 
     try {
-      await createDepositante(kofrinhoId, nome.trim(), valorNum, recorrencia)
+      await createDepositante(
+        kofrinhoId,
+        nome.trim(),
+        valorNum,
+        recorrencia,
+        email.trim() || undefined,
+        telefone.trim() || undefined
+      )
       setMensagem('Depositante criado com sucesso!')
       setNome('')
       setValor('')
       setRecorrencia('mensal')
+      setEmail('')
+      setTelefone('')
       if (onSuccess) setTimeout(() => onSuccess(), 1200)
     } catch (err) {
       setMensagem(err instanceof Error ? err.message : 'Erro ao criar depositante')
@@ -82,6 +93,28 @@ function DepositanteForm({ kofrinhoId, onSuccess }: DepositanteFormProps) {
             <option key={r.value} value={r.value}>{r.label}</option>
           ))}
         </select>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="depositante-email">E-mail <span className="optional">(opcional)</span></label>
+        <input
+          id="depositante-email"
+          type="email"
+          placeholder="contato@exemplo.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="depositante-telefone">Telefone <span className="optional">(opcional)</span></label>
+        <input
+          id="depositante-telefone"
+          type="tel"
+          placeholder="(11) 98765-4321"
+          value={telefone}
+          onChange={(e) => setTelefone(e.target.value)}
+        />
       </div>
 
       <button type="submit" className="btn-primary" disabled={loading}>

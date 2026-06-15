@@ -1,6 +1,6 @@
 import request from 'supertest'
 import sqlite3 from 'sqlite3'
-import { setupTestDb, closeTestDb, getAsync, allAsync } from '../setup/database.js'
+import { setupTestDb, closeTestDb, getAsync } from '../setup/database.js'
 import { startTestServer, stopTestServer, TestServerSetup } from '../setup/testServer.js'
 import { createValidUser } from '../setup/fixtures.js'
 
@@ -52,6 +52,152 @@ describe('Depositante Controller', () => {
         kofrinho_id: kofrinhoId,
       })
       expect(res.body.depositante.id).toBeDefined()
+    })
+
+    test('cria depositante com email e telefone e retorna 201', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          nome: 'João Silva',
+          valor: 2000,
+          recorrencia: 'mensal',
+          email: 'joao@exemplo.com',
+          telefone: '(11) 98765-4321',
+        })
+
+      expect(res.status).toBe(201)
+      expect(res.body.depositante.email).toBe('joao@exemplo.com')
+      expect(res.body.depositante.telefone).toBe('(11) 98765-4321')
+    })
+
+    test('salva email no banco ao criar depositante', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Com Email', valor: 300, recorrencia: 'semanal', email: 'teste@banco.com' })
+
+      const depId = res.body.depositante.id
+      const row = await getAsync<{ email: string }>(
+        testDb,
+        'SELECT email FROM depositantes WHERE id = ?',
+        [depId]
+      )
+
+      expect(row?.email).toBe('teste@banco.com')
+    })
+
+    test('salva telefone no banco ao criar depositante', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Com Telefone', valor: 150, recorrencia: 'diario', telefone: '+55 11 91234-5678' })
+
+      const depId = res.body.depositante.id
+      const row = await getAsync<{ telefone: string }>(
+        testDb,
+        'SELECT telefone FROM depositantes WHERE id = ?',
+        [depId]
+      )
+
+      expect(row?.telefone).toBe('+55 11 91234-5678')
+    })
+
+    test('salva email e telefone juntos no banco', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          nome: 'Completo',
+          valor: 500,
+          recorrencia: 'anual',
+          email: 'completo@teste.com',
+          telefone: '(21) 3456-7890',
+        })
+
+      const depId = res.body.depositante.id
+      const row = await getAsync<{ email: string; telefone: string }>(
+        testDb,
+        'SELECT email, telefone FROM depositantes WHERE id = ?',
+        [depId]
+      )
+
+      expect(row?.email).toBe('completo@teste.com')
+      expect(row?.telefone).toBe('(21) 3456-7890')
+    })
+
+    test('email e telefone retornam null quando não fornecidos', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Sem Contato', valor: 100, recorrencia: 'mensal' })
+
+      expect(res.status).toBe(201)
+      expect(res.body.depositante.email).toBeNull()
+      expect(res.body.depositante.telefone).toBeNull()
+    })
+
+    test('email e telefone aparecem na listagem de depositantes', async () => {
+      const kRes = await request(testServer.app)
+        .post('/api/kofrinhos')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Kofrinho Listagem Contato' })
+
+      const kId = kRes.body.kofrinho.id
+
+      await request(testServer.app)
+        .post(`/api/kofrinhos/${kId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          nome: 'Maria',
+          valor: 800,
+          recorrencia: 'mensal',
+          email: 'maria@lista.com',
+          telefone: '(31) 9999-8888',
+        })
+
+      const listRes = await request(testServer.app)
+        .get(`/api/kofrinhos/${kId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+
+      expect(listRes.status).toBe(200)
+      const dep = listRes.body.depositantes[0]
+      expect(dep.email).toBe('maria@lista.com')
+      expect(dep.telefone).toBe('(31) 9999-8888')
+    })
+
+    test('retorna 400 para email com formato inválido', async () => {
+      const casos = ['invalido', 'sem@dominio', '@semlocal.com', 'dois@@arroba.com']
+
+      for (const email of casos) {
+        const res = await request(testServer.app)
+          .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+          .set('Authorization', `Bearer ${validToken}`)
+          .send({ nome: 'Dep', valor: 100, recorrencia: 'mensal', email })
+
+        expect(res.status).toBe(400)
+        expect(res.body.erro).toContain('E-mail inválido')
+      }
+    })
+
+    test('remove espaços em branco do email antes de salvar', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Trim Email', valor: 100, recorrencia: 'mensal', email: '  trim@exemplo.com  ' })
+
+      expect(res.status).toBe(201)
+      expect(res.body.depositante.email).toBe('trim@exemplo.com')
+    })
+
+    test('remove espaços em branco do telefone antes de salvar', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Trim Tel', valor: 100, recorrencia: 'mensal', telefone: '  11 9999-0000  ' })
+
+      expect(res.status).toBe(201)
+      expect(res.body.depositante.telefone).toBe('11 9999-0000')
     })
 
     test('cria agendamento automaticamente ao criar depositante', async () => {
@@ -234,7 +380,6 @@ describe('Depositante Controller', () => {
 
       const depId = criaRes.body.depositante.id
 
-      // Confirma que agendamento existe
       const agAntes = await getAsync<{ id: number }>(
         testDb,
         'SELECT id FROM agendamentos WHERE depositante_id = ?',
@@ -242,12 +387,10 @@ describe('Depositante Controller', () => {
       )
       expect(agAntes).toBeDefined()
 
-      // Deleta depositante
       await request(testServer.app)
         .delete(`/api/kofrinhos/${kofrinhoId}/depositantes/${depId}`)
         .set('Authorization', `Bearer ${validToken}`)
 
-      // Agendamento deve ter sido removido em cascata
       const agDepois = await getAsync<{ id: number }>(
         testDb,
         'SELECT id FROM agendamentos WHERE depositante_id = ?',

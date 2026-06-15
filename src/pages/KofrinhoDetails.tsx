@@ -243,6 +243,8 @@ function KofrinhoDetails() {
                 <th>Nome</th>
                 <th>Valor</th>
                 <th>Recorrência</th>
+                <th>E-mail</th>
+                <th>Telefone</th>
                 <th></th>
               </tr>
             </thead>
@@ -254,6 +256,8 @@ function KofrinhoDetails() {
                     {d.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </td>
                   <td>{RECORRENCIA_LABEL[d.recorrencia] ?? d.recorrencia}</td>
+                  <td className="depositante-contact">{d.email ?? '—'}</td>
+                  <td className="depositante-contact">{d.telefone ?? '—'}</td>
                   <td className="depositante-actions">
                     <button
                       className="btn-delete-depositante"

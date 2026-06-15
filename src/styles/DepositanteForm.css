@@ -81,6 +81,12 @@
   border: 1px solid #f5c6cb;
 }
 
+.depositante-form .optional {
+  font-weight: 400;
+  color: #888;
+  font-size: 0.8rem;
+}
+
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }

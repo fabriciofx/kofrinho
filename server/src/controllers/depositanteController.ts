@@ -3,6 +3,7 @@ import { getAsync, allAsync, runAsync, runAsyncWithLastId } from '../database/db
 import { AuthRequest } from '../middleware/auth.js'
 import { Depositante } from '../types/index.js'
 import { calcularProximaExecucao, type Recorrencia } from '../services/schedulerService.js'
+import { isValidEmail } from '../utils/validation.js'
 
 interface DbInjectedRequest extends AuthRequest {
   testDb?: any
@@ -65,7 +66,7 @@ const RECORRENCIAS_VALIDAS = ['anual', 'mensal', 'semanal', 'diario']
 export async function createDepositante(req: DbInjectedRequest, res: Response) {
   try {
     const { id: kofrinhoId } = req.params
-    const { nome, valor, recorrencia } = req.body
+    const { nome, valor, recorrencia, email, telefone } = req.body
     const userId = req.userId
 
     const kofrinho = await getDbAsync<{ id: number }>(req,
@@ -85,14 +86,19 @@ export async function createDepositante(req: DbInjectedRequest, res: Response) {
     if (!recorrencia || !RECORRENCIAS_VALIDAS.includes(recorrencia)) {
       return res.status(400).json({ erro: 'Recorrência inválida. Use: anual, mensal, semanal ou diario' })
     }
+    const emailNorm = email ? String(email).trim() : null
+    if (emailNorm && !isValidEmail(emailNorm)) {
+      return res.status(400).json({ erro: 'E-mail inválido' })
+    }
+    const telefoneNorm = telefone ? String(telefone).trim() : null
 
     const lastId = await runDbAsyncWithLastId(req,
-      'INSERT INTO depositantes (kofrinho_id, nome, valor, recorrencia) VALUES (?, ?, ?, ?)',
-      [kofrinhoId, nome.trim(), Number(valor), recorrencia]
+      'INSERT INTO depositantes (kofrinho_id, nome, valor, recorrencia, email, telefone) VALUES (?, ?, ?, ?, ?, ?)',
+      [kofrinhoId, nome.trim(), Number(valor), recorrencia, emailNorm, telefoneNorm]
     )
 
     const depositante = await getDbAsync<Depositante>(req,
-      'SELECT id, kofrinho_id, nome, valor, recorrencia, criado_em FROM depositantes WHERE id = ?',
+      'SELECT id, kofrinho_id, nome, valor, recorrencia, email, telefone, criado_em FROM depositantes WHERE id = ?',
       [lastId]
     )
 
@@ -163,7 +169,7 @@ export async function listDepositantes(req: DbInjectedRequest, res: Response) {
     }
 
     const depositantes = await allDbAsync<Depositante>(req,
-      'SELECT id, kofrinho_id, nome, valor, recorrencia, criado_em FROM depositantes WHERE kofrinho_id = ? ORDER BY criado_em DESC',
+      'SELECT id, kofrinho_id, nome, valor, recorrencia, email, telefone, criado_em FROM depositantes WHERE kofrinho_id = ? ORDER BY criado_em DESC',
       [kofrinhoId]
     )
 

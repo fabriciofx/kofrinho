@@ -24,6 +24,8 @@ export interface Depositante {
   nome: string
   valor: number
   recorrencia: 'anual' | 'mensal' | 'semanal' | 'diario'
+  email: string | null
+  telefone: string | null
   criado_em: string
 }
 

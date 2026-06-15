@@ -318,6 +318,15 @@
   background: #fafbff;
 }
 
+.depositante-contact {
+  color: #555;
+  font-size: 0.9rem;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .depositante-actions {
   width: 40px;
   text-align: center;

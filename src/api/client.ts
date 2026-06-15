@@ -40,6 +40,8 @@ export interface Depositante {
   nome: string
   valor: number
   recorrencia: 'anual' | 'mensal' | 'semanal' | 'diario'
+  email: string | null
+  telefone: string | null
   criado_em: string
 }
 
@@ -253,7 +255,9 @@ export async function createDepositante(
   kofrinhoId: number,
   nome: string,
   valor: number,
-  recorrencia: string
+  recorrencia: string,
+  email?: string,
+  telefone?: string
 ): Promise<{ message: string; depositante: Depositante }> {
   const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes`, {
     method: 'POST',
@@ -261,7 +265,7 @@ export async function createDepositante(
       'Content-Type': 'application/json',
       ...getAuthHeaders()
     },
-    body: JSON.stringify({ nome, valor, recorrencia })
+    body: JSON.stringify({ nome, valor, recorrencia, email: email || null, telefone: telefone || null })
   })
   return handleResponse(response)
 }

@@ -43,6 +43,8 @@ export function setupTestDb(): Promise<sqlite3.Database> {
           nome TEXT NOT NULL,
           valor REAL NOT NULL,
           recorrencia TEXT NOT NULL CHECK(recorrencia IN ('anual', 'mensal', 'semanal', 'diario')),
+          email TEXT,
+          telefone TEXT,
           criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (kofrinho_id) REFERENCES kofrinhos(id) ON DELETE CASCADE
         );
