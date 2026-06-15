@@ -83,7 +83,7 @@
 .kofrinho-card {
   background: white;
   border-radius: 12px;
-  padding: 0.75rem 1rem;
+  padding: 0.4rem 0.75rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   width: fit-content;
   min-width: 280px;
@@ -96,7 +96,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.35rem;
 }
 
 .kofrinho-card h2 {
