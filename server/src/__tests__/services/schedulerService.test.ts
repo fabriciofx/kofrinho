@@ -126,7 +126,7 @@ describe('construirPayloadConfrapix', () => {
 
   test('callback_url contém kofrinho_id e depositante_id', () => {
     const p = construirPayloadConfrapix(100, null, 42, 7, agora)
-    expect(p.callback_url).toBe('https://mandacaru.org:3000/kofrinho/42/depositante/7')
+    expect(p.callback_url).toBe('https://mandacaru.org:3333/kofrinho/42/depositante/7')
   })
 })
 
@@ -374,7 +374,7 @@ describe('processarAgendamentos', () => {
     expect(payload.amount).toBe(1500)
     expect(payload.description).toBe('Férias 2025')
     expect(payload.callback_url).toBe(
-      `https://mandacaru.org:3000/kofrinho/${kfId}/depositante/${depId}`
+      `https://mandacaru.org:3333/kofrinho/${kfId}/depositante/${depId}`
     )
     expect(payload.expiration_date).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
   })
