@@ -96,13 +96,14 @@ function DepositanteForm({ kofrinhoId, onSuccess }: DepositanteFormProps) {
       </div>
 
       <div className="form-group">
-        <label htmlFor="depositante-email">E-mail <span className="optional">(opcional)</span></label>
+        <label htmlFor="depositante-email">E-mail</label>
         <input
           id="depositante-email"
           type="email"
           placeholder="contato@exemplo.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
         />
       </div>
 

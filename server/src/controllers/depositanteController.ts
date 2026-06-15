@@ -87,7 +87,10 @@ export async function createDepositante(req: DbInjectedRequest, res: Response) {
       return res.status(400).json({ erro: 'Recorrência inválida. Use: anual, mensal, semanal ou diario' })
     }
     const emailNorm = email ? String(email).trim() : null
-    if (emailNorm && !isValidEmail(emailNorm)) {
+    if (!emailNorm) {
+      return res.status(400).json({ erro: 'E-mail é obrigatório' })
+    }
+    if (!isValidEmail(emailNorm)) {
       return res.status(400).json({ erro: 'E-mail inválido' })
     }
     const telefoneNorm = telefone ? String(telefone).trim() : null

@@ -37,11 +37,11 @@ describe('Depositante Controller', () => {
   // ─── POST /api/kofrinhos/:id/depositantes ──────────────────────────────────
 
   describe('POST /api/kofrinhos/:id/depositantes', () => {
-    test('cria depositante com dados válidos e retorna 201', async () => {
+    test('cria depositante com dados válidos (incluindo email) e retorna 201', async () => {
       const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Salário', valor: 5000, recorrencia: 'mensal' })
+        .send({ nome: 'Salário', valor: 5000, recorrencia: 'mensal', email: 'salario@teste.com' })
 
       expect(res.status).toBe(201)
       expect(res.body.message).toBe('Depositante criado com sucesso')
@@ -50,6 +50,7 @@ describe('Depositante Controller', () => {
         valor: 5000,
         recorrencia: 'mensal',
         kofrinho_id: kofrinhoId,
+        email: 'salario@teste.com',
       })
       expect(res.body.depositante.id).toBeDefined()
     })
@@ -71,17 +72,64 @@ describe('Depositante Controller', () => {
       expect(res.body.depositante.telefone).toBe('(11) 98765-4321')
     })
 
+    // ── Email obrigatório ─────────────────────────────────────────────────────
+
+    test('retorna 400 quando email está ausente', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Sem Email', valor: 100, recorrencia: 'mensal' })
+
+      expect(res.status).toBe(400)
+      expect(res.body.erro).toContain('obrigatório')
+    })
+
+    test('retorna 400 quando email é string vazia', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Email Vazio', valor: 100, recorrencia: 'mensal', email: '' })
+
+      expect(res.status).toBe(400)
+      expect(res.body.erro).toContain('obrigatório')
+    })
+
+    test('retorna 400 quando email contém apenas espaços', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Email Spaces', valor: 100, recorrencia: 'mensal', email: '   ' })
+
+      expect(res.status).toBe(400)
+      expect(res.body.erro).toContain('obrigatório')
+    })
+
+    test('retorna 400 para email com formato inválido', async () => {
+      const casos = ['invalido', 'sem@dominio', '@semlocal.com', 'dois@@arroba.com']
+
+      for (const email of casos) {
+        const res = await request(testServer.app)
+          .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+          .set('Authorization', `Bearer ${validToken}`)
+          .send({ nome: 'Dep', valor: 100, recorrencia: 'mensal', email })
+
+        expect(res.status).toBe(400)
+        expect(res.body.erro).toContain('E-mail inválido')
+      }
+    })
+
+    // ── Persistência de email e telefone ─────────────────────────────────────
+
     test('salva email no banco ao criar depositante', async () => {
       const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
         .send({ nome: 'Com Email', valor: 300, recorrencia: 'semanal', email: 'teste@banco.com' })
 
-      const depId = res.body.depositante.id
       const row = await getAsync<{ email: string }>(
         testDb,
         'SELECT email FROM depositantes WHERE id = ?',
-        [depId]
+        [res.body.depositante.id]
       )
 
       expect(row?.email).toBe('teste@banco.com')
@@ -91,13 +139,18 @@ describe('Depositante Controller', () => {
       const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Com Telefone', valor: 150, recorrencia: 'diario', telefone: '+55 11 91234-5678' })
+        .send({
+          nome: 'Com Telefone',
+          valor: 150,
+          recorrencia: 'diario',
+          email: 'tel@banco.com',
+          telefone: '+55 11 91234-5678',
+        })
 
-      const depId = res.body.depositante.id
       const row = await getAsync<{ telefone: string }>(
         testDb,
         'SELECT telefone FROM depositantes WHERE id = ?',
-        [depId]
+        [res.body.depositante.id]
       )
 
       expect(row?.telefone).toBe('+55 11 91234-5678')
@@ -115,25 +168,24 @@ describe('Depositante Controller', () => {
           telefone: '(21) 3456-7890',
         })
 
-      const depId = res.body.depositante.id
       const row = await getAsync<{ email: string; telefone: string }>(
         testDb,
         'SELECT email, telefone FROM depositantes WHERE id = ?',
-        [depId]
+        [res.body.depositante.id]
       )
 
       expect(row?.email).toBe('completo@teste.com')
       expect(row?.telefone).toBe('(21) 3456-7890')
     })
 
-    test('email e telefone retornam null quando não fornecidos', async () => {
+    test('telefone retorna null quando não fornecido', async () => {
       const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Sem Contato', valor: 100, recorrencia: 'mensal' })
+        .send({ nome: 'Só Email', valor: 100, recorrencia: 'mensal', email: 'soemail@teste.com' })
 
       expect(res.status).toBe(201)
-      expect(res.body.depositante.email).toBeNull()
+      expect(res.body.depositante.email).toBe('soemail@teste.com')
       expect(res.body.depositante.telefone).toBeNull()
     })
 
@@ -166,20 +218,6 @@ describe('Depositante Controller', () => {
       expect(dep.telefone).toBe('(31) 9999-8888')
     })
 
-    test('retorna 400 para email com formato inválido', async () => {
-      const casos = ['invalido', 'sem@dominio', '@semlocal.com', 'dois@@arroba.com']
-
-      for (const email of casos) {
-        const res = await request(testServer.app)
-          .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
-          .set('Authorization', `Bearer ${validToken}`)
-          .send({ nome: 'Dep', valor: 100, recorrencia: 'mensal', email })
-
-        expect(res.status).toBe(400)
-        expect(res.body.erro).toContain('E-mail inválido')
-      }
-    })
-
     test('remove espaços em branco do email antes de salvar', async () => {
       const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
@@ -194,25 +232,32 @@ describe('Depositante Controller', () => {
       const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Trim Tel', valor: 100, recorrencia: 'mensal', telefone: '  11 9999-0000  ' })
+        .send({
+          nome: 'Trim Tel',
+          valor: 100,
+          recorrencia: 'mensal',
+          email: 'trim@tel.com',
+          telefone: '  11 9999-0000  ',
+        })
 
       expect(res.status).toBe(201)
       expect(res.body.depositante.telefone).toBe('11 9999-0000')
     })
 
+    // ── Agendamento ───────────────────────────────────────────────────────────
+
     test('cria agendamento automaticamente ao criar depositante', async () => {
       const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Bônus', valor: 1000, recorrencia: 'mensal' })
+        .send({ nome: 'Bônus', valor: 1000, recorrencia: 'mensal', email: 'bonus@ag.com' })
 
       expect(res.status).toBe(201)
-      const depositanteId = res.body.depositante.id
 
-      const ag = await getAsync<{ id: number; recorrencia: string; proxima_execucao: string; ativo: number }>(
+      const ag = await getAsync<{ recorrencia: string; ativo: number }>(
         testDb,
-        'SELECT id, recorrencia, proxima_execucao, ativo FROM agendamentos WHERE depositante_id = ?',
-        [depositanteId]
+        'SELECT recorrencia, ativo FROM agendamentos WHERE depositante_id = ?',
+        [res.body.depositante.id]
       )
 
       expect(ag).toBeDefined()
@@ -224,13 +269,12 @@ describe('Depositante Controller', () => {
       const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Aporte Semanal', valor: 200, recorrencia: 'semanal' })
+        .send({ nome: 'Aporte Semanal', valor: 200, recorrencia: 'semanal', email: 'semanal@ag.com' })
 
-      const depositanteId = res.body.depositante.id
       const ag = await getAsync<{ proxima_execucao: string }>(
         testDb,
         'SELECT proxima_execucao FROM agendamentos WHERE depositante_id = ?',
-        [depositanteId]
+        [res.body.depositante.id]
       )
 
       expect(new Date(ag!.proxima_execucao).getTime()).toBeGreaterThan(Date.now())
@@ -241,24 +285,25 @@ describe('Depositante Controller', () => {
         const res = await request(testServer.app)
           .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
           .set('Authorization', `Bearer ${validToken}`)
-          .send({ nome: `Dep ${recorrencia}`, valor: 100, recorrencia })
+          .send({ nome: `Dep ${recorrencia}`, valor: 100, recorrencia, email: `${recorrencia}@ag.com` })
 
-        const depositanteId = res.body.depositante.id
         const ag = await getAsync<{ recorrencia: string }>(
           testDb,
           'SELECT recorrencia FROM agendamentos WHERE depositante_id = ?',
-          [depositanteId]
+          [res.body.depositante.id]
         )
 
         expect(ag!.recorrencia).toBe(recorrencia)
       }
     })
 
+    // ── Outras validações ─────────────────────────────────────────────────────
+
     test('retorna 400 quando nome está ausente', async () => {
       const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ valor: 500, recorrencia: 'mensal' })
+        .send({ valor: 500, recorrencia: 'mensal', email: 'nome@ausente.com' })
 
       expect(res.status).toBe(400)
       expect(res.body.erro).toContain('obrigatório')
@@ -268,14 +313,14 @@ describe('Depositante Controller', () => {
       const resZero = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Inválido', valor: 0, recorrencia: 'mensal' })
+        .send({ nome: 'Inválido', valor: 0, recorrencia: 'mensal', email: 'zero@val.com' })
 
       expect(resZero.status).toBe(400)
 
       const resNeg = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Inválido', valor: -100, recorrencia: 'mensal' })
+        .send({ nome: 'Inválido', valor: -100, recorrencia: 'mensal', email: 'neg@val.com' })
 
       expect(resNeg.status).toBe(400)
     })
@@ -284,7 +329,7 @@ describe('Depositante Controller', () => {
       const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Dep', valor: 100, recorrencia: 'bimestral' })
+        .send({ nome: 'Dep', valor: 100, recorrencia: 'bimestral', email: 'rec@inv.com' })
 
       expect(res.status).toBe(400)
       expect(res.body.erro).toContain('Recorrência inválida')
@@ -294,7 +339,7 @@ describe('Depositante Controller', () => {
       const res = await request(testServer.app)
         .post('/api/kofrinhos/99999/depositantes')
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Dep', valor: 100, recorrencia: 'mensal' })
+        .send({ nome: 'Dep', valor: 100, recorrencia: 'mensal', email: 'k@404.com' })
 
       expect(res.status).toBe(404)
     })
@@ -302,7 +347,7 @@ describe('Depositante Controller', () => {
     test('retorna 401 sem token', async () => {
       const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
-        .send({ nome: 'Dep', valor: 100, recorrencia: 'mensal' })
+        .send({ nome: 'Dep', valor: 100, recorrencia: 'mensal', email: 'sem@token.com' })
 
       expect(res.status).toBe(401)
     })
@@ -322,12 +367,12 @@ describe('Depositante Controller', () => {
       await request(testServer.app)
         .post(`/api/kofrinhos/${kId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'D1', valor: 100, recorrencia: 'mensal' })
+        .send({ nome: 'D1', valor: 100, recorrencia: 'mensal', email: 'd1@lista.com' })
 
       await request(testServer.app)
         .post(`/api/kofrinhos/${kId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'D2', valor: 200, recorrencia: 'semanal' })
+        .send({ nome: 'D2', valor: 200, recorrencia: 'semanal', email: 'd2@lista.com' })
 
       const res = await request(testServer.app)
         .get(`/api/kofrinhos/${kId}/depositantes`)
@@ -360,12 +405,10 @@ describe('Depositante Controller', () => {
       const criaRes = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Para deletar', valor: 300, recorrencia: 'diario' })
-
-      const depId = criaRes.body.depositante.id
+        .send({ nome: 'Para deletar', valor: 300, recorrencia: 'diario', email: 'del@teste.com' })
 
       const delRes = await request(testServer.app)
-        .delete(`/api/kofrinhos/${kofrinhoId}/depositantes/${depId}`)
+        .delete(`/api/kofrinhos/${kofrinhoId}/depositantes/${criaRes.body.depositante.id}`)
         .set('Authorization', `Bearer ${validToken}`)
 
       expect(delRes.status).toBe(200)
@@ -376,7 +419,7 @@ describe('Depositante Controller', () => {
       const criaRes = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ nome: 'Com Agendamento', valor: 800, recorrencia: 'mensal' })
+        .send({ nome: 'Com Agendamento', valor: 800, recorrencia: 'mensal', email: 'cascade@teste.com' })
 
       const depId = criaRes.body.depositante.id
 
