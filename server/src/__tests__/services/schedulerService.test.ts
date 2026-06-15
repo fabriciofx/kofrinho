@@ -18,11 +18,16 @@ async function inserirUsuario(db: sqlite3.Database, email: string): Promise<numb
   })
 }
 
-async function inserirKofrinho(db: sqlite3.Database, userId: number, nome: string): Promise<number> {
+async function inserirKofrinho(
+  db: sqlite3.Database,
+  userId: number,
+  nome: string,
+  descricao: string | null = null
+): Promise<number> {
   return new Promise((resolve, reject) => {
     db.run(
-      `INSERT INTO kofrinhos (user_id, nome) VALUES (?, ?)`,
-      [userId, nome],
+      `INSERT INTO kofrinhos (user_id, nome, descricao) VALUES (?, ?, ?)`,
+      [userId, nome, descricao],
       function (this: any, err) {
         if (err) reject(err)
         else resolve(this.lastID)
@@ -36,12 +41,13 @@ async function inserirDepositante(
   kofrinhoId: number,
   nome: string,
   valor: number,
-  recorrencia: Recorrencia
+  recorrencia: Recorrencia,
+  email: string | null = 'depositante@teste.com'
 ): Promise<number> {
   return new Promise((resolve, reject) => {
     db.run(
-      `INSERT INTO depositantes (kofrinho_id, nome, valor, recorrencia) VALUES (?, ?, ?, ?)`,
-      [kofrinhoId, nome, valor, recorrencia],
+      `INSERT INTO depositantes (kofrinho_id, nome, valor, recorrencia, email) VALUES (?, ?, ?, ?, ?)`,
+      [kofrinhoId, nome, valor, recorrencia, email],
       function (this: any, err) {
         if (err) reject(err)
         else resolve(this.lastID)
@@ -162,21 +168,44 @@ describe('processarAgendamentos', () => {
     expect(mockSendFn).toHaveBeenCalledTimes(1)
   })
 
-  test('envia e-mail com os dados corretos do depositante', async () => {
+  test('envia para o e-mail do depositante (não do dono do kofrinho)', async () => {
+    const passado = new Date(Date.now() - 1000)
+    const depId = await inserirDepositante(db, kofrinhoId, 'Salário', 3000, 'mensal', 'dep@particular.com')
+    await inserirAgendamento(db, depId, kofrinhoId, userId, 'mensal', passado)
+
+    await processarAgendamentos(db, mockSendFn)
+
+    const [emailDest] = mockSendFn.mock.calls[0]
+    expect(emailDest).toBe('dep@particular.com')
+  })
+
+  test('envia e-mail com os dados corretos: dono, kofrinho, descrição, valor, recorrência', async () => {
+    const kfIdComDesc = await inserirKofrinho(db, userId, 'Cofre Viagem', 'Economias para férias')
+    const depId = await inserirDepositante(db, kfIdComDesc, 'Parcela', 500, 'mensal', 'viajante@teste.com')
+    const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depId, kfIdComDesc, userId, 'mensal', passado)
+
+    await processarAgendamentos(db, mockSendFn)
+
+    const [emailDest, nomeDonoKofrinho, nomeKofrinho, descricaoKofrinho, valor, recorrencia] =
+      mockSendFn.mock.calls[0]
+
+    expect(emailDest).toBe('viajante@teste.com')
+    expect(nomeDonoKofrinho).toBe('Usuário Teste')
+    expect(nomeKofrinho).toBe('Cofre Viagem')
+    expect(descricaoKofrinho).toBe('Economias para férias')
+    expect(valor).toBe(500)
+    expect(recorrencia).toBe('mensal')
+  })
+
+  test('passa null como descrição quando kofrinho não tem descrição', async () => {
     const passado = new Date(Date.now() - 1000)
     await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
 
     await processarAgendamentos(db, mockSendFn)
 
-    const [email, nomeUsuario, nomeKofrinho, nomeDepositante, valor, recorrencia] =
-      mockSendFn.mock.calls[0]
-
-    expect(email).toMatch(/@teste\.com/)
-    expect(nomeUsuario).toBe('Usuário Teste')
-    expect(nomeKofrinho).toBe('Kofrinho Teste')
-    expect(nomeDepositante).toBe('Salário')
-    expect(valor).toBe(3000)
-    expect(recorrencia).toBe('mensal')
+    const [, , , descricaoKofrinho] = mockSendFn.mock.calls[0]
+    expect(descricaoKofrinho).toBeNull()
   })
 
   test('não processa agendamento inativo (ativo = 0)', async () => {

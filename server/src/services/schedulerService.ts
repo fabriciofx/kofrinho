@@ -5,10 +5,10 @@ import { sendAgendamentoEmail } from './emailService.js'
 export type Recorrencia = 'diario' | 'semanal' | 'mensal' | 'anual'
 
 export type EmailSendFn = (
-  email: string,
-  nomeUsuario: string,
+  emailDepositante: string,
+  nomeDonoKofrinho: string,
   nomeKofrinho: string,
-  nomeDepositante: string,
+  descricaoKofrinho: string | null,
   valor: number,
   recorrencia: string
 ) => Promise<void>
@@ -28,10 +28,10 @@ export function calcularProximaExecucao(recorrencia: Recorrencia, from: Date = n
 interface AgendamentoPendente {
   id: number
   recorrencia: Recorrencia
-  email: string
+  depositante_email: string
   nome_completo: string
   kofrinho_nome: string
-  depositante_nome: string
+  kofrinho_descricao: string | null
   valor: number
 }
 
@@ -67,9 +67,11 @@ export async function processarAgendamentos(
 
   const pendentes = await allDbAsync<AgendamentoPendente>(db,
     `SELECT a.id, a.recorrencia,
-            u.email, u.nome_completo,
-            k.nome AS kofrinho_nome,
-            d.nome AS depositante_nome, d.valor
+            d.email AS depositante_email,
+            u.nome_completo,
+            k.nome  AS kofrinho_nome,
+            k.descricao AS kofrinho_descricao,
+            d.valor
      FROM agendamentos a
      JOIN users u        ON a.user_id       = u.id
      JOIN kofrinhos k    ON a.kofrinho_id   = k.id
@@ -82,10 +84,10 @@ export async function processarAgendamentos(
   for (const ag of pendentes) {
     try {
       await sendFn(
-        ag.email,
+        ag.depositante_email,
         ag.nome_completo,
         ag.kofrinho_nome,
-        ag.depositante_nome,
+        ag.kofrinho_descricao,
         ag.valor,
         ag.recorrencia
       )

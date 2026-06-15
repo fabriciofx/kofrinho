@@ -77,34 +77,21 @@ const RECORRENCIA_LABEL: Record<string, string> = {
 }
 
 export async function sendAgendamentoEmail(
-  email: string,
-  nomeUsuario: string,
+  emailDepositante: string,
+  nomeDonoKofrinho: string,
   nomeKofrinho: string,
-  nomeDepositante: string,
+  descricaoKofrinho: string | null,
   valor: number,
   recorrencia: string
 ): Promise<void> {
-  const label = RECORRENCIA_LABEL[recorrencia] ?? recorrencia
   const valorFormatado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  const referencia = descricaoKofrinho || nomeKofrinho
 
-  const html = `
-    <h2>Kofrinho — Lembrete de Depósito ${label}</h2>
-    <p>Olá, <strong>${nomeUsuario}</strong>!</p>
-    <p>Este é o seu lembrete <strong>${label.toLowerCase()}</strong> de depósito:</p>
-    <table cellpadding="8" style="border-collapse:collapse;">
-      <tr><td><strong>Kofrinho:</strong></td><td>${nomeKofrinho}</td></tr>
-      <tr><td><strong>Depositante:</strong></td><td>${nomeDepositante}</td></tr>
-      <tr><td><strong>Valor:</strong></td><td>${valorFormatado}</td></tr>
-      <tr><td><strong>Recorrência:</strong></td><td>${label}</td></tr>
-    </table>
-    <p style="margin-top:1rem;">Não esqueça de realizar o seu depósito! 💰</p>
-  `
+  const subject = `Kofrinho de ${nomeDonoKofrinho}: depositar R$ ${valorFormatado} no cofre ${nomeKofrinho}`
 
-  await sendEmail({
-    to: email,
-    subject: `Kofrinho — Lembrete ${label}: ${nomeDepositante} (${valorFormatado})`,
-    html,
-  })
+  const html = `<p>Olá! Eu sou o Kofrinho! Estou lhe enviando essa mensagem para lembrar-lhe de depositar R$ ${valorFormatado} no Kofrinho de ${nomeDonoKofrinho} referente a ${referencia}</p>`
+
+  await sendEmail({ to: emailDepositante, subject, html })
 }
 
 export async function sendPasswordResetEmail(email: string, resetToken: string, resetUrl: string): Promise<void> {
