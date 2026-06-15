@@ -265,7 +265,8 @@ describe('Depositante Controller', () => {
       expect(ag!.ativo).toBe(1)
     })
 
-    test('agendamento tem proxima_execucao no futuro', async () => {
+    test('agendamento tem proxima_execucao imediata para o scheduler disparar o primeiro e-mail', async () => {
+      const antes = Date.now()
       const res = await request(testServer.app)
         .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
         .set('Authorization', `Bearer ${validToken}`)
@@ -277,7 +278,10 @@ describe('Depositante Controller', () => {
         [res.body.depositante.id]
       )
 
-      expect(new Date(ag!.proxima_execucao).getTime()).toBeGreaterThan(Date.now())
+      // proxima_execucao <= agora: scheduler processa imediatamente no próximo ciclo
+      expect(new Date(ag!.proxima_execucao).getTime()).toBeLessThanOrEqual(Date.now())
+      // foi criada durante este teste, não é uma data antiga
+      expect(new Date(ag!.proxima_execucao).getTime()).toBeGreaterThanOrEqual(antes - 1000)
     })
 
     test('agendamento herda a recorrencia do depositante', async () => {

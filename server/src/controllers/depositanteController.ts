@@ -105,7 +105,8 @@ export async function createDepositante(req: DbInjectedRequest, res: Response) {
       [lastId]
     )
 
-    const proxima = calcularProximaExecucao(recorrencia as Recorrencia).toISOString()
+    // proxima_execucao = agora → scheduler envia o primeiro e-mail imediatamente
+    const proxima = new Date().toISOString()
     await runDbAsync(req,
       'INSERT INTO agendamentos (depositante_id, kofrinho_id, user_id, recorrencia, proxima_execucao) VALUES (?, ?, ?, ?, ?)',
       [lastId, kofrinhoId, userId, recorrencia, proxima]
