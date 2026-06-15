@@ -68,6 +68,18 @@ export function setupTestDb(): Promise<sqlite3.Database> {
 
         CREATE INDEX IF NOT EXISTS idx_agendamentos_depositante_id ON agendamentos(depositante_id);
         CREATE INDEX IF NOT EXISTS idx_agendamentos_proxima_execucao ON agendamentos(proxima_execucao);
+
+        CREATE TABLE IF NOT EXISTS pagamentos (
+          id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          kofrinho_id    INTEGER NOT NULL,
+          depositante_id INTEGER NOT NULL,
+          valor          REAL NOT NULL,
+          criado_em      DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (kofrinho_id)    REFERENCES kofrinhos(id)    ON DELETE CASCADE,
+          FOREIGN KEY (depositante_id) REFERENCES depositantes(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_pagamentos_kofrinho_id ON pagamentos(kofrinho_id);
       `
 
       db.exec(schema, (err) => {

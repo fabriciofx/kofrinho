@@ -9,6 +9,15 @@ export interface Kofrinho {
   criado_em: string
 }
 
+export interface Pagamento {
+  id: number
+  kofrinho_id: number
+  depositante_id: number
+  depositante_nome: string
+  valor: number
+  criado_em: string
+}
+
 export interface Depositante {
   id: number
   kofrinho_id: number
@@ -24,6 +33,7 @@ interface KofrinhoContextType {
   kofrinhos: Kofrinho[]
   selectedKofrinho: Kofrinho | null
   depositantes: Depositante[]
+  pagamentos: Pagamento[]
   loading: boolean
   error: string | null
 
@@ -37,6 +47,7 @@ interface KofrinhoContextType {
   updateDepositante: (kofrinhoId: number, depositanteId: number, data: api.DepositanteUpdate) => Promise<void>
   fetchDepositantes: (kofrinhoId: number) => Promise<void>
   deleteDepositante: (kofrinhoId: number, depositanteId: number) => Promise<void>
+  fetchPagamentos: (kofrinhoId: number) => Promise<void>
 }
 
 const KofrinhoContext = createContext<KofrinhoContextType | undefined>(undefined)
@@ -45,6 +56,7 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
   const [kofrinhos, setKofrinhos] = useState<Kofrinho[]>([])
   const [selectedKofrinho, setSelectedKofrinho] = useState<Kofrinho | null>(null)
   const [depositantes, setDepositantes] = useState<Depositante[]>([])
+  const [pagamentos, setPagamentos] = useState<Pagamento[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -188,10 +200,21 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const fetchPagamentos = useCallback(async (kofrinhoId: number) => {
+    try {
+      const data = await api.listPagamentos(kofrinhoId)
+      setPagamentos(data)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar pagamentos'
+      setError(message)
+    }
+  }, [])
+
   const value: KofrinhoContextType = {
     kofrinhos,
     selectedKofrinho,
     depositantes,
+    pagamentos,
     loading,
     error,
 
@@ -205,6 +228,7 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     updateDepositante,
     fetchDepositantes,
     deleteDepositante,
+    fetchPagamentos,
   }
 
   return <KofrinhoContext.Provider value={value}>{children}</KofrinhoContext.Provider>

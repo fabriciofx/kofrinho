@@ -88,6 +88,23 @@ export async function initializeDatabase() {
       ON agendamentos(proxima_execucao)
     `)
 
+    await runAsync(`
+      CREATE TABLE IF NOT EXISTS pagamentos (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        kofrinho_id    INTEGER NOT NULL,
+        depositante_id INTEGER NOT NULL,
+        valor          REAL NOT NULL,
+        criado_em      DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (kofrinho_id)    REFERENCES kofrinhos(id)    ON DELETE CASCADE,
+        FOREIGN KEY (depositante_id) REFERENCES depositantes(id) ON DELETE CASCADE
+      )
+    `)
+
+    await runAsync(`
+      CREATE INDEX IF NOT EXISTS idx_pagamentos_kofrinho_id
+      ON pagamentos(kofrinho_id)
+    `)
+
     console.log('✅ Banco de dados inicializado com sucesso')
   } catch (err) {
     console.error('❌ Erro ao inicializar banco:', err)

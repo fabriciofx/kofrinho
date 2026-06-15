@@ -15,7 +15,7 @@ const RECORRENCIA_LABEL: Record<string, string> = {
 function KofrinhoDetails() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { selectedKofrinho, depositantes, loading, error, selectKofrinho, updateKofrinho, deleteKofrinho, fetchDepositantes, deleteDepositante } = useKofrinho()
+  const { selectedKofrinho, depositantes, pagamentos, loading, error, selectKofrinho, updateKofrinho, deleteKofrinho, fetchDepositantes, deleteDepositante, fetchPagamentos } = useKofrinho()
   const [descricao, setDescricao] = useState('')
   const [nome, setNome] = useState('')
   const [mensagem, setMensagem] = useState('')
@@ -26,8 +26,9 @@ function KofrinhoDetails() {
     if (id) {
       selectKofrinho(parseInt(id))
       fetchDepositantes(parseInt(id))
+      fetchPagamentos(parseInt(id))
     }
-  }, [id, selectKofrinho, fetchDepositantes])
+  }, [id, selectKofrinho, fetchDepositantes, fetchPagamentos])
 
   useEffect(() => {
     if (selectedKofrinho) {
@@ -289,6 +290,33 @@ function KofrinhoDetails() {
                       🗑
                     </button>
                   </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="pagamentos-section">
+        <h2>Depósitos Confirmados</h2>
+
+        {pagamentos.length === 0 ? (
+          <p className="pagamentos-empty">Nenhum depósito confirmado ainda.</p>
+        ) : (
+          <table className="pagamentos-table">
+            <thead>
+              <tr>
+                <th>Depositante</th>
+                <th>Valor</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagamentos.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.depositante_nome}</td>
+                  <td>{p.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                  <td>{new Date(p.criado_em).toLocaleString('pt-BR')}</td>
                 </tr>
               ))}
             </tbody>

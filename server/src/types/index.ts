@@ -29,6 +29,15 @@ export interface Depositante {
   criado_em: string
 }
 
+export interface Pagamento {
+  id: number
+  kofrinho_id: number
+  depositante_id: number
+  depositante_nome: string
+  valor: number
+  criado_em: string
+}
+
 export interface Agendamento {
   id: number
   depositante_id: number

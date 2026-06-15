@@ -8,6 +8,7 @@ import { iniciarAgendador } from './services/schedulerService.js'
 import authRoutes from './routes/authRoutes.js'
 import kofrinhoRoutes from './routes/kofrinhoRoutes.js'
 import avatarRoutes from './routes/avatarRoutes.js'
+import { registrarPagamento } from './controllers/pagamentoController.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -32,6 +33,9 @@ app.use('/api/avatars', express.static(path.join(__dirname, '../uploads/avatars'
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server running on port 3000' })
 })
+
+// Webhook Confrapix: confirma pagamento de um depositante (sem auth)
+app.post('/kofrinho/:kofrinhoId/depositante/:depositanteId', registrarPagamento)
 
 // Catch-all: rotas não encontradas retornam JSON, nunca HTML
 app.use((_req, res) => {
