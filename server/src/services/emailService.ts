@@ -1,10 +1,16 @@
 import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 export interface EmailOptions {
   to: string
   subject: string
   html: string
 }
+
+// ── Nodemailer (recuperação de senha) ────────────────────────────────────────
 
 let transporter: nodemailer.Transporter | null = null
 
@@ -48,9 +54,9 @@ async function getTransporter(): Promise<nodemailer.Transporter> {
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
   try {
-    const transporter = await getTransporter()
+    const t = await getTransporter()
 
-    const info = await transporter.sendMail({
+    const info = await t.sendMail({
       from: process.env.EMAIL_FROM || 'noreply@kofrinho.com',
       to: options.to,
       subject: options.subject,
@@ -67,31 +73,6 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
     console.error('❌ Erro ao enviar email:', err)
     throw err
   }
-}
-
-const RECORRENCIA_LABEL: Record<string, string> = {
-  diario: 'Diário',
-  semanal: 'Semanal',
-  mensal: 'Mensal',
-  anual: 'Anual',
-}
-
-export async function sendAgendamentoEmail(
-  emailDepositante: string,
-  nomeDonoKofrinho: string,
-  nomeKofrinho: string,
-  descricaoKofrinho: string | null,
-  valor: number,
-  recorrencia: string
-): Promise<void> {
-  const valorFormatado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-  const referencia = descricaoKofrinho || nomeKofrinho
-
-  const subject = `Kofrinho de ${nomeDonoKofrinho}: depositar R$ ${valorFormatado} no cofre ${nomeKofrinho}`
-
-  const html = `<p>Olá! Eu sou o Kofrinho! Estou lhe enviando essa mensagem para lembrar-lhe de depositar R$ ${valorFormatado} no Kofrinho de ${nomeDonoKofrinho} referente a ${referencia}</p>`
-
-  await sendEmail({ to: emailDepositante, subject, html })
 }
 
 export async function sendPasswordResetEmail(email: string, resetToken: string, resetUrl: string): Promise<void> {
@@ -118,4 +99,49 @@ export async function sendPasswordResetEmail(email: string, resetToken: string, 
     subject: 'Redefinir Senha - Kofrinho',
     html,
   })
+}
+
+// ── Resend (e-mails de agendamento) ──────────────────────────────────────────
+
+function carregarResendApiKey(): string {
+  if (process.env.RESEND_API_KEY) return process.env.RESEND_API_KEY
+
+  try {
+    const thisDir = path.dirname(fileURLToPath(import.meta.url))
+    const rootDir = path.resolve(thisDir, '../../..')
+    return fs.readFileSync(path.join(rootDir, '.resend'), 'utf-8').trim()
+  } catch {
+    throw new Error(
+      'Resend API key não encontrado. Configure RESEND_API_KEY ou crie o arquivo .resend na raiz do projeto.'
+    )
+  }
+}
+
+export async function sendAgendamentoEmail(
+  emailDepositante: string,
+  nomeDonoKofrinho: string,
+  nomeKofrinho: string,
+  descricaoKofrinho: string | null,
+  valor: number,
+  recorrencia: string
+): Promise<void> {
+  const valorFormatado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  const referencia = descricaoKofrinho || nomeKofrinho
+
+  const subject = `Kofrinho de ${nomeDonoKofrinho}: depositar R$ ${valorFormatado} no cofre ${nomeKofrinho}`
+  const html = `<p>Olá! Eu sou o Kofrinho! Estou lhe enviando essa mensagem para lembrar-lhe de depositar R$ ${valorFormatado} no Kofrinho de ${nomeDonoKofrinho} referente a ${referencia}</p>`
+
+  const resend = new Resend(carregarResendApiKey())
+  const { error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM || 'Kofrinho <noreply@kofrinho.com>',
+    to: emailDepositante,
+    subject,
+    html,
+  })
+
+  if (error) {
+    throw new Error(`Resend: ${error.message}`)
+  }
+
+  console.log(`📧 Resend: e-mail enviado para ${emailDepositante}`)
 }
