@@ -130,7 +130,7 @@ describe('processarAgendamentos', () => {
 
   beforeEach(async () => {
     db = await setupTestDb()
-    mockSendFn = jest.fn().mockResolvedValue(undefined)
+    mockSendFn = jest.fn().mockImplementation(() => Promise.resolve())
 
     userId = await inserirUsuario(db, `user-${Date.now()}@teste.com`)
     kofrinhoId = await inserirKofrinho(db, userId, 'Kofrinho Teste')
@@ -300,7 +300,7 @@ describe('processarAgendamentos', () => {
     // Primeiro envio falha, segundo deve prosseguir
     mockSendFn
       .mockRejectedValueOnce(new Error('SMTP error'))
-      .mockResolvedValueOnce(undefined)
+      .mockImplementationOnce(() => Promise.resolve())
 
     const enviados = await processarAgendamentos(db, mockSendFn)
 
