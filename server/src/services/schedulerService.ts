@@ -132,7 +132,7 @@ export async function processarAgendamentos(
   return enviados
 }
 
-const POLL_INTERVAL_MS = 60_000
+const POLL_INTERVAL_MS = 10_000
 
 let intervalId: ReturnType<typeof setInterval> | null = null
 
