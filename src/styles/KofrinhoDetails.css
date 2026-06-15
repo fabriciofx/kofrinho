@@ -265,9 +265,10 @@
   border-radius: 12px;
   padding: 2rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  max-width: 600px;
+  max-width: 900px;
   margin: 0 auto 1.5rem;
   width: 100%;
+  overflow-x: auto;
 }
 
 .depositantes-section h2 {
