@@ -119,8 +119,8 @@ export async function sendAgendamentoEmail(
   const valorFormatado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   const referencia = descricaoKofrinho || nomeKofrinho
 
-  const subject = `Kofrinho de ${nomeDonoKofrinho}: depositar R$ ${valorFormatado} no cofre ${nomeKofrinho}`
-  const html = `<p>Olá! Eu sou o Kofrinho! Estou lhe enviando essa mensagem para lembrar-lhe de depositar R$ ${valorFormatado} no Kofrinho de ${nomeDonoKofrinho} referente a ${referencia}</p>`
+  const subject = `Kofrinho de ${nomeDonoKofrinho}: depositar ${valorFormatado} no cofre ${nomeKofrinho}`
+  const html = `<p>Olá! Eu sou o Kofrinho! Estou lhe enviando essa mensagem para lembrar-lhe de depositar ${valorFormatado} no Kofrinho de ${nomeDonoKofrinho} referente a ${referencia}</p>`
 
   const resend = new Resend(carregarResendApiKey())
   const { error } = await resend.emails.send({
