@@ -270,6 +270,30 @@ export async function createDepositante(
   return handleResponse(response)
 }
 
+export interface DepositanteUpdate {
+  nome?: string
+  valor?: number
+  recorrencia?: string
+  email?: string
+  telefone?: string | null
+}
+
+export async function updateDepositante(
+  kofrinhoId: number,
+  depositanteId: number,
+  data: DepositanteUpdate
+): Promise<{ message: string; depositante: Depositante }> {
+  const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes/${depositanteId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify(data)
+  })
+  return handleResponse(response)
+}
+
 export async function deleteDepositante(kofrinhoId: number, depositanteId: number): Promise<{ message: string }> {
   const response = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/depositantes/${depositanteId}`, {
     method: 'DELETE',

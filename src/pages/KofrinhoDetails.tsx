@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useKofrinho } from '../context/KofrinhoContext'
+import { useKofrinho, type Depositante } from '../context/KofrinhoContext'
+import { Modal } from '../components/Modal'
+import EditDepositanteForm from '../components/EditDepositanteForm'
 import '../styles/KofrinhoDetails.css'
 
 const RECORRENCIA_LABEL: Record<string, string> = {
@@ -18,6 +20,7 @@ function KofrinhoDetails() {
   const [nome, setNome] = useState('')
   const [mensagem, setMensagem] = useState('')
   const [isEditing, setIsEditing] = useState(false)
+  const [editingDepositante, setEditingDepositante] = useState<Depositante | null>(null)
 
   useEffect(() => {
     if (id) {
@@ -260,6 +263,13 @@ function KofrinhoDetails() {
                   <td className="depositante-contact">{d.telefone ?? '—'}</td>
                   <td className="depositante-actions">
                     <button
+                      className="btn-edit-depositante"
+                      title="Editar depositante"
+                      onClick={() => setEditingDepositante(d)}
+                    >
+                      ✏️
+                    </button>
+                    <button
                       className="btn-delete-depositante"
                       title="Remover depositante"
                       onClick={async () => {
@@ -280,6 +290,20 @@ function KofrinhoDetails() {
           </table>
         )}
       </div>
+
+      <Modal
+        isOpen={editingDepositante !== null}
+        onClose={() => setEditingDepositante(null)}
+        title="Editar Depositante"
+      >
+        {editingDepositante && (
+          <EditDepositanteForm
+            kofrinhoId={selectedKofrinho!.id}
+            depositante={editingDepositante}
+            onSuccess={() => setEditingDepositante(null)}
+          />
+        )}
+      </Modal>
     </section>
   )
 }

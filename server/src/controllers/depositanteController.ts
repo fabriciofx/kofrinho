@@ -119,6 +119,77 @@ export async function createDepositante(req: DbInjectedRequest, res: Response) {
   }
 }
 
+export async function updateDepositante(req: DbInjectedRequest, res: Response) {
+  try {
+    const { id: kofrinhoId, depositanteId } = req.params
+    const { nome, valor, recorrencia, email, telefone } = req.body
+    const userId = req.userId
+
+    const kofrinho = await getDbAsync<{ id: number }>(req,
+      'SELECT id FROM kofrinhos WHERE id = ? AND user_id = ?',
+      [kofrinhoId, userId]
+    )
+    if (!kofrinho) return res.status(404).json({ erro: 'Kofrinho não encontrado' })
+
+    const depositanteAtual = await getDbAsync<{ id: number; recorrencia: string }>(req,
+      'SELECT id, recorrencia FROM depositantes WHERE id = ? AND kofrinho_id = ?',
+      [depositanteId, kofrinhoId]
+    )
+    if (!depositanteAtual) return res.status(404).json({ erro: 'Depositante não encontrado' })
+
+    if (nome !== undefined && !String(nome).trim()) {
+      return res.status(400).json({ erro: 'Nome é obrigatório' })
+    }
+    if (valor !== undefined && (isNaN(Number(valor)) || Number(valor) <= 0)) {
+      return res.status(400).json({ erro: 'Valor deve ser um número positivo' })
+    }
+    if (recorrencia !== undefined && !RECORRENCIAS_VALIDAS.includes(recorrencia)) {
+      return res.status(400).json({ erro: 'Recorrência inválida. Use: anual, mensal, semanal ou diario' })
+    }
+
+    let emailNorm: string | undefined
+    if (email !== undefined) {
+      emailNorm = String(email).trim()
+      if (!emailNorm) return res.status(400).json({ erro: 'E-mail é obrigatório' })
+      if (!isValidEmail(emailNorm)) return res.status(400).json({ erro: 'E-mail inválido' })
+    }
+
+    const telefoneNorm = telefone !== undefined ? (String(telefone).trim() || null) : undefined
+
+    const sets: string[] = []
+    const params: any[] = []
+    if (nome !== undefined)      { sets.push('nome = ?');        params.push(String(nome).trim()) }
+    if (valor !== undefined)     { sets.push('valor = ?');       params.push(Number(valor)) }
+    if (recorrencia !== undefined) { sets.push('recorrencia = ?'); params.push(recorrencia) }
+    if (emailNorm !== undefined) { sets.push('email = ?');       params.push(emailNorm) }
+    if (telefoneNorm !== undefined) { sets.push('telefone = ?'); params.push(telefoneNorm) }
+
+    if (sets.length === 0) {
+      return res.status(400).json({ erro: 'Nenhum campo para atualizar' })
+    }
+
+    params.push(depositanteId)
+    await runDbAsync(req, `UPDATE depositantes SET ${sets.join(', ')} WHERE id = ?`, params)
+
+    if (recorrencia !== undefined && recorrencia !== depositanteAtual.recorrencia) {
+      await runDbAsync(req,
+        'UPDATE agendamentos SET recorrencia = ? WHERE depositante_id = ?',
+        [recorrencia, depositanteId]
+      )
+    }
+
+    const depositante = await getDbAsync<Depositante>(req,
+      'SELECT id, kofrinho_id, nome, valor, recorrencia, email, telefone, criado_em FROM depositantes WHERE id = ?',
+      [depositanteId]
+    )
+
+    return res.status(200).json({ message: 'Depositante atualizado com sucesso', depositante })
+  } catch (err) {
+    console.error('❌ Erro ao atualizar depositante:', err)
+    res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
 export async function deleteDepositante(req: DbInjectedRequest, res: Response) {
   try {
     const { id: kofrinhoId, depositanteId } = req.params

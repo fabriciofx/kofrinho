@@ -34,6 +34,7 @@ interface KofrinhoContextType {
   deleteKofrinho: (id: number) => Promise<void>
   clearSelected: () => void
   createDepositante: (kofrinhoId: number, nome: string, valor: number, recorrencia: string, email?: string, telefone?: string) => Promise<void>
+  updateDepositante: (kofrinhoId: number, depositanteId: number, data: api.DepositanteUpdate) => Promise<void>
   fetchDepositantes: (kofrinhoId: number) => Promise<void>
   deleteDepositante: (kofrinhoId: number, depositanteId: number) => Promise<void>
 }
@@ -152,6 +153,20 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const updateDepositante = useCallback(async (kofrinhoId: number, depositanteId: number, data: api.DepositanteUpdate) => {
+    setLoading(true)
+    try {
+      const result = await api.updateDepositante(kofrinhoId, depositanteId, data)
+      setDepositantes(prev => prev.map(d => d.id === depositanteId ? result.depositante : d))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao atualizar depositante'
+      setError(message)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const deleteDepositante = useCallback(async (kofrinhoId: number, depositanteId: number) => {
     try {
       await api.deleteDepositante(kofrinhoId, depositanteId)
@@ -187,6 +202,7 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     deleteKofrinho,
     clearSelected,
     createDepositante,
+    updateDepositante,
     fetchDepositantes,
     deleteDepositante,
   }
