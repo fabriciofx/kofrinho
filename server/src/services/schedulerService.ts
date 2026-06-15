@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3'
 import { allAsync, runAsync } from '../database/db.js'
 import { sendAgendamentoEmail } from './emailService.js'
+import { chamarConfrapix, construirPayloadConfrapix, type ConfrapixFn } from './confrapixService.js'
 
 export type Recorrencia = 'diario' | 'semanal' | 'mensal' | 'anual'
 
@@ -12,6 +13,8 @@ export type EmailSendFn = (
   valor: number,
   recorrencia: string
 ) => Promise<void>
+
+export { type ConfrapixFn }
 
 export function calcularProximaExecucao(recorrencia: Recorrencia, from: Date = new Date()): Date {
   const next = new Date(from)
@@ -28,6 +31,8 @@ export function calcularProximaExecucao(recorrencia: Recorrencia, from: Date = n
 interface AgendamentoPendente {
   id: number
   recorrencia: Recorrencia
+  kofrinho_id: number
+  depositante_id: number
   depositante_email: string
   nome_completo: string
   kofrinho_nome: string
@@ -61,12 +66,15 @@ function runDbAsync(db: sqlite3.Database | undefined, sql: string, params: any[]
 
 export async function processarAgendamentos(
   db?: sqlite3.Database,
-  sendFn: EmailSendFn = sendAgendamentoEmail
+  sendFn: EmailSendFn = sendAgendamentoEmail,
+  confrapixFn: ConfrapixFn = chamarConfrapix
 ): Promise<number> {
-  const now = new Date().toISOString()
+  const agora = new Date()
+  const now = agora.toISOString()
 
   const pendentes = await allDbAsync<AgendamentoPendente>(db,
     `SELECT a.id, a.recorrencia,
+            a.kofrinho_id, a.depositante_id,
             d.email AS depositante_email,
             u.nome_completo,
             k.nome  AS kofrinho_nome,
@@ -83,6 +91,16 @@ export async function processarAgendamentos(
   let enviados = 0
   for (const ag of pendentes) {
     try {
+      const payload = construirPayloadConfrapix(
+        ag.valor,
+        ag.nome_completo,
+        ag.kofrinho_descricao,
+        ag.kofrinho_id,
+        ag.depositante_id,
+        agora
+      )
+      await confrapixFn(payload)
+
       await sendFn(
         ag.depositante_email,
         ag.nome_completo,
@@ -115,7 +133,6 @@ const POLL_INTERVAL_MS = 60_000
 let intervalId: ReturnType<typeof setInterval> | null = null
 
 export function iniciarAgendador(): void {
-  // Processa imediatamente ao iniciar para cobrir jobs vencidos durante downtime
   processarAgendamentos().catch(err => console.error('❌ Erro no agendador:', err))
 
   intervalId = setInterval(() => {

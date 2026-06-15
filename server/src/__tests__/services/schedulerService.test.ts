@@ -1,9 +1,11 @@
 import { jest } from '@jest/globals'
 import sqlite3 from 'sqlite3'
 import { calcularProximaExecucao, processarAgendamentos, type Recorrencia } from '../../services/schedulerService.js'
+import { construirPayloadConfrapix, formatarDataExpiracao } from '../../services/confrapixService.js'
 import { setupTestDb, closeTestDb, getAsync } from '../setup/database.js'
 
-// Helper para inserir dados de teste diretamente no banco
+// ─── Helpers de inserção ──────────────────────────────────────────────────────
+
 async function inserirUsuario(db: sqlite3.Database, email: string): Promise<number> {
   return new Promise((resolve, reject) => {
     db.run(
@@ -78,49 +80,107 @@ async function inserirAgendamento(
   })
 }
 
+// ─── formatarDataExpiracao ────────────────────────────────────────────────────
+
+describe('formatarDataExpiracao', () => {
+  test('retorna data 24h no futuro no formato YYYY-MM-DD HH:MM:SS (UTC)', () => {
+    const agora = new Date('2025-06-15T10:00:00.000Z')
+    expect(formatarDataExpiracao(agora)).toBe('2025-06-16 10:00:00')
+  })
+
+  test('lida corretamente com virada de mês', () => {
+    const agora = new Date('2025-01-31T23:00:00.000Z')
+    expect(formatarDataExpiracao(agora)).toBe('2025-02-01 23:00:00')
+  })
+
+  test('lida corretamente com virada de ano', () => {
+    const agora = new Date('2024-12-31T12:00:00.000Z')
+    expect(formatarDataExpiracao(agora)).toBe('2025-01-01 12:00:00')
+  })
+})
+
+// ─── construirPayloadConfrapix ────────────────────────────────────────────────
+
+describe('construirPayloadConfrapix', () => {
+  const agora = new Date('2025-06-15T08:00:00.000Z')
+
+  beforeEach(() => { process.env.CONFRAPIX_CUSTOMER_DOCUMENT = '123.456.789-00' })
+  afterEach(() => { delete process.env.CONFRAPIX_CUSTOMER_DOCUMENT })
+
+  test('amount é o valor do depositante', () => {
+    const p = construirPayloadConfrapix(2500, 'João', null, 1, 1, agora)
+    expect(p.amount).toBe(2500)
+  })
+
+  test('customer_name é "Kofrinho de ${nomeDonoKofrinho}"', () => {
+    const p = construirPayloadConfrapix(100, 'Maria Silva', null, 1, 1, agora)
+    expect(p.customer_name).toBe('Kofrinho de Maria Silva')
+  })
+
+  test('description é a descrição do kofrinho', () => {
+    const p = construirPayloadConfrapix(100, 'X', 'Férias 2025', 1, 1, agora)
+    expect(p.description).toBe('Férias 2025')
+  })
+
+  test('description é string vazia quando descrição é null', () => {
+    const p = construirPayloadConfrapix(100, 'X', null, 1, 1, agora)
+    expect(p.description).toBe('')
+  })
+
+  test('expiration_date é 24h no futuro no formato correto', () => {
+    const p = construirPayloadConfrapix(100, 'X', null, 1, 1, agora)
+    expect(p.expiration_date).toBe('2025-06-16 08:00:00')
+  })
+
+  test('callback_url contém kofrinho_id e depositante_id', () => {
+    const p = construirPayloadConfrapix(100, 'X', null, 42, 7, agora)
+    expect(p.callback_url).toBe('https://mandacaru.org:3000/kofrinho/42/depositante/7')
+  })
+
+  test('customer_document vem de CONFRAPIX_CUSTOMER_DOCUMENT', () => {
+    const p = construirPayloadConfrapix(100, 'X', null, 1, 1, agora)
+    expect(p.customer_document).toBe('123.456.789-00')
+  })
+
+  test('customer_document é string vazia quando variável não está definida', () => {
+    delete process.env.CONFRAPIX_CUSTOMER_DOCUMENT
+    const p = construirPayloadConfrapix(100, 'X', null, 1, 1, agora)
+    expect(p.customer_document).toBe('')
+  })
+})
+
 // ─── calcularProximaExecucao ──────────────────────────────────────────────────
 
 describe('calcularProximaExecucao', () => {
   const base = new Date('2025-06-15T08:00:00.000Z')
 
   test('diario: adiciona 1 dia', () => {
-    const result = calcularProximaExecucao('diario', base)
-    expect(result.toISOString()).toContain('2025-06-16')
+    expect(calcularProximaExecucao('diario', base).toISOString()).toContain('2025-06-16')
   })
 
   test('semanal: adiciona 7 dias', () => {
-    const result = calcularProximaExecucao('semanal', base)
-    expect(result.toISOString()).toContain('2025-06-22')
+    expect(calcularProximaExecucao('semanal', base).toISOString()).toContain('2025-06-22')
   })
 
   test('mensal: adiciona 1 mês', () => {
-    const result = calcularProximaExecucao('mensal', base)
-    expect(result.toISOString()).toContain('2025-07-15')
+    expect(calcularProximaExecucao('mensal', base).toISOString()).toContain('2025-07-15')
   })
 
   test('anual: adiciona 1 ano', () => {
-    const result = calcularProximaExecucao('anual', base)
-    expect(result.toISOString()).toContain('2026-06-15')
+    expect(calcularProximaExecucao('anual', base).toISOString()).toContain('2026-06-15')
   })
 
   test('mensal: trata overflow de mês (31 jan → 28/29 fev)', () => {
     const jan31 = new Date('2025-01-31T00:00:00.000Z')
-    const result = calcularProximaExecucao('mensal', jan31)
-    // JS Date lida com overflow: 31 fev → 3 mar; ou usa último dia de fev
-    // O valor deve ser maior que a data base
-    expect(result.getTime()).toBeGreaterThan(jan31.getTime())
+    expect(calcularProximaExecucao('mensal', jan31).getTime()).toBeGreaterThan(jan31.getTime())
   })
 
   test('usa a data atual quando `from` não é fornecido', () => {
-    const antes = new Date()
-    const result = calcularProximaExecucao('diario')
-    expect(result.getTime()).toBeGreaterThan(antes.getTime())
+    expect(calcularProximaExecucao('diario').getTime()).toBeGreaterThan(Date.now())
   })
 
   test('lança erro para recorrência desconhecida', () => {
-    expect(() => calcularProximaExecucao('quinzenal' as Recorrencia, base)).toThrow(
-      'Recorrência desconhecida'
-    )
+    expect(() => calcularProximaExecucao('quinzenal' as Recorrencia, base)).toThrow('Recorrência desconhecida')
   })
 })
 
@@ -128,8 +188,8 @@ describe('calcularProximaExecucao', () => {
 
 describe('processarAgendamentos', () => {
   let db: sqlite3.Database
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockSendFn: ReturnType<typeof jest.fn>
+  let mockConfrapixFn: ReturnType<typeof jest.fn>
   let userId: number
   let kofrinhoId: number
   let depositanteId: number
@@ -137,6 +197,8 @@ describe('processarAgendamentos', () => {
   beforeEach(async () => {
     db = await setupTestDb()
     mockSendFn = jest.fn().mockImplementation(() => Promise.resolve())
+    mockConfrapixFn = jest.fn().mockImplementation(() => Promise.resolve())
+    process.env.CONFRAPIX_CUSTOMER_DOCUMENT = '123.456.789-00'
 
     userId = await inserirUsuario(db, `user-${Date.now()}@teste.com`)
     kofrinhoId = await inserirKofrinho(db, userId, 'Kofrinho Teste')
@@ -146,46 +208,242 @@ describe('processarAgendamentos', () => {
   afterEach(async () => {
     await closeTestDb(db)
     jest.clearAllMocks()
+    delete process.env.CONFRAPIX_CUSTOMER_DOCUMENT
   })
+
+  // ── Comportamento geral ───────────────────────────────────────────────────
 
   test('retorna 0 quando não há agendamentos vencidos', async () => {
     const futuro = new Date(Date.now() + 1_000_000)
     await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', futuro)
 
-    const enviados = await processarAgendamentos(db, mockSendFn)
+    const enviados = await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
 
     expect(enviados).toBe(0)
     expect(mockSendFn).not.toHaveBeenCalled()
+    expect(mockConfrapixFn).not.toHaveBeenCalled()
   })
 
-  test('envia e-mail e retorna 1 quando há agendamento vencido', async () => {
+  test('processa agendamento vencido e retorna 1', async () => {
     const passado = new Date(Date.now() - 1000)
     await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
 
-    const enviados = await processarAgendamentos(db, mockSendFn)
+    const enviados = await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
 
     expect(enviados).toBe(1)
+    expect(mockConfrapixFn).toHaveBeenCalledTimes(1)
     expect(mockSendFn).toHaveBeenCalledTimes(1)
   })
 
-  test('envia para o e-mail do depositante (não do dono do kofrinho)', async () => {
+  test('não processa agendamento inativo (ativo = 0)', async () => {
     const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado, 0)
+
+    const enviados = await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    expect(enviados).toBe(0)
+    expect(mockConfrapixFn).not.toHaveBeenCalled()
+    expect(mockSendFn).not.toHaveBeenCalled()
+  })
+
+  test('processa múltiplos agendamentos vencidos', async () => {
+    const d2 = await inserirDepositante(db, kofrinhoId, 'Bônus', 500, 'semanal')
+    const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
+    await inserirAgendamento(db, d2, kofrinhoId, userId, 'semanal', passado)
+
+    const enviados = await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    expect(enviados).toBe(2)
+    expect(mockConfrapixFn).toHaveBeenCalledTimes(2)
+    expect(mockSendFn).toHaveBeenCalledTimes(2)
+  })
+
+  test('não reprocessa agendamento já processado', async () => {
+    const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'diario', passado)
+
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+    const enviados2 = await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    expect(enviados2).toBe(0)
+    expect(mockConfrapixFn).toHaveBeenCalledTimes(1)
+    expect(mockSendFn).toHaveBeenCalledTimes(1)
+  })
+
+  test('atualiza proxima_execucao para o futuro após processar', async () => {
+    const passado = new Date(Date.now() - 1000)
+    const agId = await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
+
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    const ag = await getAsync<{ proxima_execucao: string }>(
+      db, 'SELECT proxima_execucao FROM agendamentos WHERE id = ?', [agId]
+    )
+    expect(new Date(ag!.proxima_execucao).getTime()).toBeGreaterThan(Date.now())
+  })
+
+  test('atualiza ultima_execucao após processar', async () => {
+    const passado = new Date(Date.now() - 1000)
+    const agId = await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'diario', passado)
+    const antes = Date.now()
+
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    const ag = await getAsync<{ ultima_execucao: string }>(
+      db, 'SELECT ultima_execucao FROM agendamentos WHERE id = ?', [agId]
+    )
+    expect(new Date(ag!.ultima_execucao).getTime()).toBeGreaterThanOrEqual(antes - 100)
+  })
+
+  test('envia para o e-mail do depositante (não do dono)', async () => {
     const depId = await inserirDepositante(db, kofrinhoId, 'Salário', 3000, 'mensal', 'dep@particular.com')
+    const passado = new Date(Date.now() - 1000)
     await inserirAgendamento(db, depId, kofrinhoId, userId, 'mensal', passado)
 
-    await processarAgendamentos(db, mockSendFn)
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
 
     const [emailDest] = mockSendFn.mock.calls[0]
     expect(emailDest).toBe('dep@particular.com')
   })
 
-  test('envia e-mail com os dados corretos: dono, kofrinho, descrição, valor, recorrência', async () => {
-    const kfIdComDesc = await inserirKofrinho(db, userId, 'Cofre Viagem', 'Economias para férias')
-    const depId = await inserirDepositante(db, kfIdComDesc, 'Parcela', 500, 'mensal', 'viajante@teste.com')
+  test('passa null como descrição quando kofrinho não tem descrição', async () => {
     const passado = new Date(Date.now() - 1000)
-    await inserirAgendamento(db, depId, kfIdComDesc, userId, 'mensal', passado)
+    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
 
-    await processarAgendamentos(db, mockSendFn)
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    const [, , , descricaoKofrinho] = mockSendFn.mock.calls[0]
+    expect(descricaoKofrinho).toBeNull()
+  })
+
+  test('proxima_execucao respeita a recorrência correta após processar', async () => {
+    const passado = new Date(Date.now() - 1000)
+    const agId = await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'semanal', passado)
+    const antes = new Date()
+
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    const ag = await getAsync<{ proxima_execucao: string }>(
+      db, 'SELECT proxima_execucao FROM agendamentos WHERE id = ?', [agId]
+    )
+    const diff = new Date(ag!.proxima_execucao).getTime() - antes.getTime()
+    const sete = 7 * 24 * 60 * 60 * 1000
+    expect(diff).toBeGreaterThan(sete - 60_000)
+    expect(diff).toBeLessThan(sete + 60_000)
+  })
+
+  test('comportamento após reinício: processa jobs vencidos durante downtime', async () => {
+    const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const agId = await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'diario', ontem)
+
+    const enviados = await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    expect(enviados).toBe(1)
+    const ag = await getAsync<{ proxima_execucao: string }>(
+      db, 'SELECT proxima_execucao FROM agendamentos WHERE id = ?', [agId]
+    )
+    expect(new Date(ag!.proxima_execucao).getTime()).toBeGreaterThan(Date.now())
+  })
+
+  test('continua processando os demais quando um envio falha', async () => {
+    const d2 = await inserirDepositante(db, kofrinhoId, 'Outro', 200, 'diario')
+    const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
+    await inserirAgendamento(db, d2, kofrinhoId, userId, 'diario', passado)
+
+    mockSendFn
+      .mockRejectedValueOnce(new Error('SMTP error'))
+      .mockImplementationOnce(() => Promise.resolve())
+
+    const enviados = await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    expect(enviados).toBe(1)
+    expect(mockSendFn).toHaveBeenCalledTimes(2)
+  })
+
+  // ── Chamada Confrapix ─────────────────────────────────────────────────────
+
+  test('chama confrapixFn antes de sendFn', async () => {
+    const ordem: string[] = []
+    mockConfrapixFn.mockImplementation(() => { ordem.push('confrapix'); return Promise.resolve() })
+    mockSendFn.mockImplementation(() => { ordem.push('email'); return Promise.resolve() })
+
+    const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
+
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    expect(ordem).toEqual(['confrapix', 'email'])
+  })
+
+  test('chama confrapixFn com payload correto', async () => {
+    const kfId = await inserirKofrinho(db, userId, 'Cofre Viagem', 'Férias 2025')
+    const depId = await inserirDepositante(db, kfId, 'Parcela', 1500, 'mensal', 'viagem@teste.com')
+    const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depId, kfId, userId, 'mensal', passado)
+
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    const payload = mockConfrapixFn.mock.calls[0][0]
+    expect(payload.amount).toBe(1500)
+    expect(payload.customer_name).toBe('Kofrinho de Usuário Teste')
+    expect(payload.description).toBe('Férias 2025')
+    expect(payload.customer_document).toBe('123.456.789-00')
+    expect(payload.callback_url).toBe(
+      `https://mandacaru.org:3000/kofrinho/${kfId}/depositante/${depId}`
+    )
+    expect(payload.expiration_date).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
+  })
+
+  test('expiration_date no payload está ~24h no futuro', async () => {
+    const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
+
+    const antes = Date.now()
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    const { expiration_date } = mockConfrapixFn.mock.calls[0][0]
+    const expiraMs = new Date(expiration_date.replace(' ', 'T') + 'Z').getTime()
+    const vinte4h = 24 * 60 * 60 * 1000
+    expect(expiraMs - antes).toBeGreaterThan(vinte4h - 5000)
+    expect(expiraMs - antes).toBeLessThan(vinte4h + 5000)
+  })
+
+  test('não envia e-mail se confrapixFn falhar', async () => {
+    mockConfrapixFn.mockRejectedValueOnce(new Error('Confrapix indisponível'))
+
+    const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
+
+    const enviados = await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    expect(enviados).toBe(0)
+    expect(mockSendFn).not.toHaveBeenCalled()
+  })
+
+  test('não atualiza proxima_execucao se confrapixFn falhar', async () => {
+    mockConfrapixFn.mockRejectedValueOnce(new Error('Confrapix error'))
+
+    const passado = new Date(Date.now() - 1000)
+    const agId = await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
+
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    const ag = await getAsync<{ proxima_execucao: string }>(
+      db, 'SELECT proxima_execucao FROM agendamentos WHERE id = ?', [agId]
+    )
+    // proxima_execucao deve continuar no passado (não foi atualizada)
+    expect(new Date(ag!.proxima_execucao).getTime()).toBeLessThan(Date.now())
+  })
+
+  test('envia e-mail com os dados corretos do depositante', async () => {
+    const kfId = await inserirKofrinho(db, userId, 'Cofre Viagem', 'Economias para férias')
+    const depId = await inserirDepositante(db, kfId, 'Parcela', 500, 'mensal', 'viajante@teste.com')
+    const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depId, kfId, userId, 'mensal', passado)
+
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
 
     const [emailDest, nomeDonoKofrinho, nomeKofrinho, descricaoKofrinho, valor, recorrencia] =
       mockSendFn.mock.calls[0]
@@ -196,144 +454,5 @@ describe('processarAgendamentos', () => {
     expect(descricaoKofrinho).toBe('Economias para férias')
     expect(valor).toBe(500)
     expect(recorrencia).toBe('mensal')
-  })
-
-  test('passa null como descrição quando kofrinho não tem descrição', async () => {
-    const passado = new Date(Date.now() - 1000)
-    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
-
-    await processarAgendamentos(db, mockSendFn)
-
-    const [, , , descricaoKofrinho] = mockSendFn.mock.calls[0]
-    expect(descricaoKofrinho).toBeNull()
-  })
-
-  test('não processa agendamento inativo (ativo = 0)', async () => {
-    const passado = new Date(Date.now() - 1000)
-    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado, 0)
-
-    const enviados = await processarAgendamentos(db, mockSendFn)
-
-    expect(enviados).toBe(0)
-    expect(mockSendFn).not.toHaveBeenCalled()
-  })
-
-  test('atualiza proxima_execucao para o futuro após processar', async () => {
-    const passado = new Date(Date.now() - 1000)
-    const agId = await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
-
-    await processarAgendamentos(db, mockSendFn)
-
-    const ag = await getAsync<{ proxima_execucao: string }>(
-      db,
-      'SELECT proxima_execucao FROM agendamentos WHERE id = ?',
-      [agId]
-    )
-
-    expect(ag).toBeDefined()
-    expect(new Date(ag!.proxima_execucao).getTime()).toBeGreaterThan(Date.now())
-  })
-
-  test('atualiza ultima_execucao após processar', async () => {
-    const passado = new Date(Date.now() - 1000)
-    const agId = await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'diario', passado)
-
-    const antes = Date.now()
-    await processarAgendamentos(db, mockSendFn)
-
-    const ag = await getAsync<{ ultima_execucao: string }>(
-      db,
-      'SELECT ultima_execucao FROM agendamentos WHERE id = ?',
-      [agId]
-    )
-
-    expect(ag?.ultima_execucao).toBeDefined()
-    expect(new Date(ag!.ultima_execucao).getTime()).toBeGreaterThanOrEqual(antes - 100)
-  })
-
-  test('processa múltiplos agendamentos vencidos', async () => {
-    const d2 = await inserirDepositante(db, kofrinhoId, 'Bônus', 500, 'semanal')
-    const d3 = await inserirDepositante(db, kofrinhoId, 'Aluguel', 1200, 'mensal')
-
-    const passado = new Date(Date.now() - 1000)
-    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
-    await inserirAgendamento(db, d2, kofrinhoId, userId, 'semanal', passado)
-    await inserirAgendamento(db, d3, kofrinhoId, userId, 'mensal', passado)
-
-    const enviados = await processarAgendamentos(db, mockSendFn)
-
-    expect(enviados).toBe(3)
-    expect(mockSendFn).toHaveBeenCalledTimes(3)
-  })
-
-  test('não reprocessa agendamento já processado na mesma rodada', async () => {
-    const passado = new Date(Date.now() - 1000)
-    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'diario', passado)
-
-    await processarAgendamentos(db, mockSendFn)
-    const enviados2 = await processarAgendamentos(db, mockSendFn)
-
-    expect(enviados2).toBe(0)
-    expect(mockSendFn).toHaveBeenCalledTimes(1)
-  })
-
-  test('comportamento após reinício: processa jobs vencidos durante downtime', async () => {
-    // Simula job que deveria ter sido executado ontem (servidor estava offline)
-    const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    const agId = await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'diario', ontem)
-
-    // Simula reinício chamando processarAgendamentos diretamente
-    const enviados = await processarAgendamentos(db, mockSendFn)
-
-    expect(enviados).toBe(1)
-    expect(mockSendFn).toHaveBeenCalledTimes(1)
-
-    // Após processar, proxima_execucao deve ser amanhã (não ontem)
-    const ag = await getAsync<{ proxima_execucao: string }>(
-      db,
-      'SELECT proxima_execucao FROM agendamentos WHERE id = ?',
-      [agId]
-    )
-    expect(new Date(ag!.proxima_execucao).getTime()).toBeGreaterThan(Date.now())
-  })
-
-  test('proxima_execucao após processar respeita a recorrência correta', async () => {
-    const passado = new Date(Date.now() - 1000)
-    const agId = await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'semanal', passado)
-
-    const antes = new Date()
-    await processarAgendamentos(db, mockSendFn)
-
-    const ag = await getAsync<{ proxima_execucao: string }>(
-      db,
-      'SELECT proxima_execucao FROM agendamentos WHERE id = ?',
-      [agId]
-    )
-
-    const proxima = new Date(ag!.proxima_execucao)
-    const diffMs = proxima.getTime() - antes.getTime()
-    const seteDiasMs = 7 * 24 * 60 * 60 * 1000
-
-    // proxima_execucao deve ser ~7 dias no futuro (tolerância de 1 min)
-    expect(diffMs).toBeGreaterThan(seteDiasMs - 60_000)
-    expect(diffMs).toBeLessThan(seteDiasMs + 60_000)
-  })
-
-  test('continua processando os demais quando um envio falha', async () => {
-    const d2 = await inserirDepositante(db, kofrinhoId, 'Outro', 200, 'diario')
-
-    const passado = new Date(Date.now() - 1000)
-    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
-    await inserirAgendamento(db, d2, kofrinhoId, userId, 'diario', passado)
-
-    // Primeiro envio falha, segundo deve prosseguir
-    mockSendFn
-      .mockRejectedValueOnce(new Error('SMTP error'))
-      .mockImplementationOnce(() => Promise.resolve())
-
-    const enviados = await processarAgendamentos(db, mockSendFn)
-
-    expect(enviados).toBe(1)
-    expect(mockSendFn).toHaveBeenCalledTimes(2)
   })
 })
