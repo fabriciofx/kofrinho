@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useKofrinho, type Depositante } from '../context/KofrinhoContext'
 import { Modal } from '../components/Modal'
+import DepositanteForm from '../components/DepositanteForm'
 import EditDepositanteForm from '../components/EditDepositanteForm'
 import { API_BASE_URL, getStoredTokens } from '../api/client'
 import '../styles/KofrinhoDetails.css'
@@ -22,6 +23,7 @@ function KofrinhoDetails() {
   const [mensagem, setMensagem] = useState('')
   const [isEditing, setIsEditing] = useState(false)
   const [editingDepositante, setEditingDepositante] = useState<Depositante | null>(null)
+  const [creatingDepositante, setCreatingDepositante] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -283,7 +285,16 @@ function KofrinhoDetails() {
       )}
 
       <div className="depositantes-section">
-        <h2>Depositantes</h2>
+        <div className="depositantes-section-header">
+          <h2>Depositantes</h2>
+          <button
+            type="button"
+            className="btn-primary btn-novo-depositante"
+            onClick={() => setCreatingDepositante(true)}
+          >
+            + Novo depositante
+          </button>
+        </div>
 
         {depositantes.length === 0 ? (
           <p className="depositantes-empty">Nenhum depositante cadastrado ainda.</p>
@@ -365,6 +376,20 @@ function KofrinhoDetails() {
           </table>
         )}
       </div>
+
+      <Modal
+        isOpen={creatingDepositante}
+        onClose={() => setCreatingDepositante(false)}
+        title="Novo Depositante"
+      >
+        <DepositanteForm
+          kofrinhoId={selectedKofrinho!.id}
+          onSuccess={() => {
+            setCreatingDepositante(false)
+            fetchDepositantes(selectedKofrinho!.id)
+          }}
+        />
+      </Modal>
 
       <Modal
         isOpen={editingDepositante !== null}

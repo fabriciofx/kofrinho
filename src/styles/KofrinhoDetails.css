@@ -378,6 +378,25 @@
   overflow-x: auto;
 }
 
+.depositantes-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.depositantes-section-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.btn-novo-depositante {
+  font-size: 0.875rem;
+  padding: 0.45rem 1rem;
+  white-space: nowrap;
+}
+
 .depositantes-section h2 {
   margin-top: 0;
   color: #333;
