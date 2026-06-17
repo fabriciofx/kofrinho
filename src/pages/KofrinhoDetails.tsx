@@ -382,13 +382,15 @@ function KofrinhoDetails() {
         onClose={() => setCreatingDepositante(false)}
         title="Novo Depositante"
       >
-        <DepositanteForm
-          kofrinhoId={selectedKofrinho!.id}
-          onSuccess={() => {
-            setCreatingDepositante(false)
-            fetchDepositantes(selectedKofrinho!.id)
-          }}
-        />
+        {selectedKofrinho && (
+          <DepositanteForm
+            kofrinhoId={selectedKofrinho.id}
+            onSuccess={() => {
+              setCreatingDepositante(false)
+              fetchDepositantes(selectedKofrinho.id)
+            }}
+          />
+        )}
       </Modal>
 
       <Modal
