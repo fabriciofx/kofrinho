@@ -18,10 +18,10 @@ export const test = base.extend<{ testUser: TestUser; authenticatedPage: typeof 
   },
 
   authenticatedPage: async ({ page }, use) => {
-    const timestamp = Date.now()
+    const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const testUser = {
-      name: `Test User ${timestamp}`,
-      email: `test${timestamp}@example.com`,
+      name: `Test User ${uid}`,
+      email: `test${uid}@example.com`,
       password: 'Test@1234'
     }
 
