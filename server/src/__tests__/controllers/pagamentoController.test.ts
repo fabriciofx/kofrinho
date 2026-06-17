@@ -125,6 +125,25 @@ describe('Pagamento Controller', () => {
       expect(res.status).toBe(200)
     })
 
+    test('chamadas repetidas ao webhook retornam 200 sem alterar pago_em', async () => {
+      // Primeira confirmação
+      await request(testServer.app).post(`/api/pagamentos/${pagamentoId}`)
+      const { pago_em: primeiroPagoEm } = await getAsync<{ pago_em: string }>(
+        testDb, 'SELECT pago_em FROM pagamentos WHERE pagamento_id = ?', [pagamentoId]
+      ) as { pago_em: string }
+
+      // Segunda chamada (gateway repetindo o webhook)
+      const res = await request(testServer.app).post(`/api/pagamentos/${pagamentoId}`)
+      expect(res.status).toBe(200)
+
+      const { pago_em: segundoPagoEm } = await getAsync<{ pago_em: string }>(
+        testDb, 'SELECT pago_em FROM pagamentos WHERE pagamento_id = ?', [pagamentoId]
+      ) as { pago_em: string }
+
+      // pago_em não deve ser sobrescrito
+      expect(segundoPagoEm).toBe(primeiroPagoEm)
+    })
+
     test('retorna 200 com envio de e-mail em background (NODE_ENV=test pula o Resend)', async () => {
       // sendPagamentoConfirmadoEmail retorna cedo em NODE_ENV=test sem lançar,
       // garantindo que o webhook sempre retorna 200 independente do e-mail

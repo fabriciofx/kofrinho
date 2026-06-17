@@ -88,6 +88,11 @@ export async function registrarPagamento(req: DbInjectedRequest, res: Response) 
       return res.status(404).json({ erro: 'Pagamento não encontrado' })
     }
 
+    // Idempotência: chamadas repetidas do webhook não disparam novo e-mail
+    if (pagamento.pago === 1) {
+      return res.status(200).json({ message: 'Pagamento já confirmado' })
+    }
+
     await runDbAsync(req,
       'UPDATE pagamentos SET pago = 1, pago_em = CURRENT_TIMESTAMP WHERE pagamento_id = ?',
       [pagamentoId]
