@@ -27,3 +27,6 @@ stats.html
 .resend
 .env
 tests
+
+playwright-report
+test-results
