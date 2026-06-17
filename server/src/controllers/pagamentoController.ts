@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import { getAsync, allAsync, runAsyncWithLastId } from '../database/db.js'
+import { getAsync, allAsync, runAsync } from '../database/db.js'
 import { AuthRequest } from '../middleware/auth.js'
 import { Pagamento } from '../types/index.js'
 
@@ -37,42 +37,42 @@ function allDbAsync<T>(req: any, sql: string, params: any[]) {
   return allAsync<T>(sql, params)
 }
 
-function runDbAsyncWithLastId(req: any, sql: string, params: any[]): Promise<number> {
+function runDbAsync(req: any, sql: string, params: any[]): Promise<void> {
   const db = req.testDb
   if (db) {
-    return new Promise<number>((resolve, reject) => {
-      db.run(sql, params, function (this: any, err: Error | null) {
+    return new Promise<void>((resolve, reject) => {
+      db.run(sql, params, (err: Error | null) => {
         if (err) reject(err)
-        else resolve(this.lastID as number)
+        else resolve()
       })
     })
   }
-  return runAsyncWithLastId(sql, params)
+  return runAsync(sql, params)
 }
 
 // Webhook chamado pela Confrapix quando o pagamento é confirmado
-// POST /kofrinho/:kofrinhoId/depositante/:depositanteId
+// POST /pagamentos/:pagamentoId
 export async function registrarPagamento(req: DbInjectedRequest, res: Response) {
   try {
-    const { kofrinhoId, depositanteId } = req.params
+    const { pagamentoId } = req.params
 
-    const depositante = await getDbAsync<{ valor: number }>(req,
-      'SELECT valor FROM depositantes WHERE id = ? AND kofrinho_id = ?',
-      [depositanteId, kofrinhoId]
+    const pagamento = await getDbAsync<{ id: number; pago: number }>(req,
+      'SELECT id, pago FROM pagamentos WHERE pagamento_id = ?',
+      [pagamentoId]
     )
-    if (!depositante) {
-      return res.status(404).json({ erro: 'Depositante não encontrado neste kofrinho' })
+    if (!pagamento) {
+      return res.status(404).json({ erro: 'Pagamento não encontrado' })
     }
 
-    await runDbAsyncWithLastId(req,
-      'INSERT INTO pagamentos (kofrinho_id, depositante_id, valor) VALUES (?, ?, ?)',
-      [kofrinhoId, depositanteId, depositante.valor]
+    await runDbAsync(req,
+      'UPDATE pagamentos SET pago = 1 WHERE pagamento_id = ?',
+      [pagamentoId]
     )
 
-    console.log(`✅ Pagamento registrado: kofrinho ${kofrinhoId}, depositante ${depositanteId}, valor ${depositante.valor}`)
-    return res.status(201).json({ message: 'Pagamento registrado com sucesso' })
+    console.log(`✅ Pagamento confirmado: ${pagamentoId}`)
+    return res.status(200).json({ message: 'Pagamento confirmado com sucesso' })
   } catch (err) {
-    console.error('❌ Erro ao registrar pagamento:', err)
+    console.error('❌ Erro ao confirmar pagamento:', err)
     res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }
@@ -93,7 +93,7 @@ export async function listPagamentos(req: DbInjectedAuthRequest, res: Response) 
     }
 
     const pagamentos = await allDbAsync<Pagamento>(req,
-      `SELECT p.id, p.kofrinho_id, p.depositante_id, p.valor, p.criado_em,
+      `SELECT p.id, p.pagamento_id, p.kofrinho_id, p.depositante_id, p.valor, p.pago, p.criado_em,
               d.nome AS depositante_nome
        FROM pagamentos p
        JOIN depositantes d ON p.depositante_id = d.id

@@ -36,15 +36,14 @@ export function formatarDataExpiracao(agora: Date = new Date()): string {
 export function construirPayloadConfrapix(
   valor: number,
   descricaoKofrinho: string | null,
-  kofrinhoId: number,
-  depositanteId: number,
+  pagamentoId: string,
   agora: Date = new Date()
 ): ConfrapixPayload {
   return {
     amount: valor,
     description: descricaoKofrinho || '',
     expiration_date: formatarDataExpiracao(agora),
-    callback_url: `${process.env.KOFRINHO_API_URL}/kofrinho/${kofrinhoId}/depositante/${depositanteId}`,
+    callback_url: `${process.env.KOFRINHO_API_URL}/pagamentos/${pagamentoId}`,
   }
 }
 

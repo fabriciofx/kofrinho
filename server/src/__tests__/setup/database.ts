@@ -71,9 +71,11 @@ export function setupTestDb(): Promise<sqlite3.Database> {
 
         CREATE TABLE IF NOT EXISTS pagamentos (
           id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          pagamento_id   TEXT UNIQUE NOT NULL,
           kofrinho_id    INTEGER NOT NULL,
           depositante_id INTEGER NOT NULL,
           valor          REAL NOT NULL,
+          pago           INTEGER NOT NULL DEFAULT 0,
           criado_em      DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (kofrinho_id)    REFERENCES kofrinhos(id)    ON DELETE CASCADE,
           FOREIGN KEY (depositante_id) REFERENCES depositantes(id) ON DELETE CASCADE

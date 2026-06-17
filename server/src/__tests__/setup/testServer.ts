@@ -50,7 +50,7 @@ export async function startTestServer(db: sqlite3.Database): Promise<TestServerS
   app.put('/api/kofrinhos/:id', authMiddleware, updateKofrinho)
   app.delete('/api/kofrinhos/:id', authMiddleware, deleteKofrinho)
 
-  app.post('/kofrinho/:kofrinhoId/depositante/:depositanteId', registrarPagamento)
+  app.post('/pagamentos/:pagamentoId', registrarPagamento)
   app.get('/api/kofrinhos/:id/pagamentos', authMiddleware, listPagamentos)
   app.post('/api/kofrinhos/:id/depositantes', authMiddleware, createDepositante)
   app.get('/api/kofrinhos/:id/depositantes', authMiddleware, listDepositantes)

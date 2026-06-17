@@ -91,9 +91,11 @@ export async function initializeDatabase() {
     await runAsync(`
       CREATE TABLE IF NOT EXISTS pagamentos (
         id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        pagamento_id   TEXT UNIQUE NOT NULL,
         kofrinho_id    INTEGER NOT NULL,
         depositante_id INTEGER NOT NULL,
         valor          REAL NOT NULL,
+        pago           INTEGER NOT NULL DEFAULT 0,
         criado_em      DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (kofrinho_id)    REFERENCES kofrinhos(id)    ON DELETE CASCADE,
         FOREIGN KEY (depositante_id) REFERENCES depositantes(id) ON DELETE CASCADE
@@ -104,6 +106,10 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_pagamentos_kofrinho_id
       ON pagamentos(kofrinho_id)
     `)
+
+    // Migrations: adiciona colunas em bancos existentes (ignorado se já existirem)
+    try { await runAsync('ALTER TABLE pagamentos ADD COLUMN pagamento_id TEXT') } catch { /* já existe */ }
+    try { await runAsync('ALTER TABLE pagamentos ADD COLUMN pago INTEGER DEFAULT 0') } catch { /* já existe */ }
 
     console.log('✅ Banco de dados inicializado com sucesso')
   } catch (err) {

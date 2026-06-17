@@ -1,8 +1,26 @@
+import { randomUUID } from 'crypto'
 import request from 'supertest'
 import sqlite3 from 'sqlite3'
 import { setupTestDb, closeTestDb, getAsync, allAsync } from '../setup/database.js'
 import { startTestServer, stopTestServer, TestServerSetup } from '../setup/testServer.js'
 import { createValidUser } from '../setup/fixtures.js'
+
+async function inserirPagamento(
+  db: sqlite3.Database,
+  pagamentoId: string,
+  kofrinhoId: number,
+  depositanteId: number,
+  valor: number,
+  pago = 0
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    db.run(
+      'INSERT INTO pagamentos (pagamento_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, ?)',
+      [pagamentoId, kofrinhoId, depositanteId, valor, pago],
+      (err) => (err ? reject(err) : resolve())
+    )
+  })
+}
 
 describe('Pagamento Controller', () => {
   let testServer: TestServerSetup
@@ -37,62 +55,56 @@ describe('Pagamento Controller', () => {
     await closeTestDb(testDb)
   })
 
-  // ─── POST /kofrinho/:kofrinhoId/depositante/:depositanteId ─────────────────
+  // ─── POST /pagamentos/:pagamentoId (webhook) ───────────────────────────────
 
-  describe('POST /kofrinho/:kofrinhoId/depositante/:depositanteId (webhook)', () => {
-    test('registra pagamento e retorna 201', async () => {
-      const res = await request(testServer.app)
-        .post(`/kofrinho/${kofrinhoId}/depositante/${depositanteId}`)
+  describe('POST /pagamentos/:pagamentoId (webhook)', () => {
+    let pagamentoId: string
 
-      expect(res.status).toBe(201)
-      expect(res.body.message).toBe('Pagamento registrado com sucesso')
+    beforeEach(async () => {
+      pagamentoId = randomUUID()
+      await inserirPagamento(testDb, pagamentoId, kofrinhoId, depositanteId, 500)
     })
 
-    test('salva o valor do depositante no registro de pagamento', async () => {
-      await request(testServer.app)
-        .post(`/kofrinho/${kofrinhoId}/depositante/${depositanteId}`)
+    test('confirma pagamento e retorna 200', async () => {
+      const res = await request(testServer.app)
+        .post(`/pagamentos/${pagamentoId}`)
 
-      const pag = await getAsync<{ valor: number }>(
+      expect(res.status).toBe(200)
+      expect(res.body.message).toBe('Pagamento confirmado com sucesso')
+    })
+
+    test('atualiza pago para 1 no banco de dados', async () => {
+      await request(testServer.app)
+        .post(`/pagamentos/${pagamentoId}`)
+
+      const pag = await getAsync<{ pago: number }>(
         testDb,
-        'SELECT valor FROM pagamentos WHERE kofrinho_id = ? AND depositante_id = ? ORDER BY criado_em DESC LIMIT 1',
-        [kofrinhoId, depositanteId]
+        'SELECT pago FROM pagamentos WHERE pagamento_id = ?',
+        [pagamentoId]
       )
-      expect(pag?.valor).toBe(500)
+      expect(pag?.pago).toBe(1)
     })
 
-    test('pode registrar múltiplos pagamentos para o mesmo depositante', async () => {
-      await request(testServer.app)
-        .post(`/kofrinho/${kofrinhoId}/depositante/${depositanteId}`)
-      await request(testServer.app)
-        .post(`/kofrinho/${kofrinhoId}/depositante/${depositanteId}`)
-
-      const pags = await allAsync<{ id: number }>(
-        testDb,
-        'SELECT id FROM pagamentos WHERE kofrinho_id = ? AND depositante_id = ?',
-        [kofrinhoId, depositanteId]
-      )
-      expect(pags.length).toBeGreaterThanOrEqual(2)
-    })
-
-    test('retorna 404 quando depositante não pertence ao kofrinho', async () => {
+    test('retorna 404 quando pagamento_id não existe', async () => {
       const res = await request(testServer.app)
-        .post(`/kofrinho/${kofrinhoId}/depositante/99999`)
-
-      expect(res.status).toBe(404)
-    })
-
-    test('retorna 404 quando kofrinho não existe', async () => {
-      const res = await request(testServer.app)
-        .post(`/kofrinho/99999/depositante/${depositanteId}`)
+        .post('/pagamentos/uuid-inexistente')
 
       expect(res.status).toBe(404)
     })
 
     test('não requer autenticação (é um webhook público)', async () => {
       const res = await request(testServer.app)
-        .post(`/kofrinho/${kofrinhoId}/depositante/${depositanteId}`)
-      // Sem Authorization header — deve funcionar
-      expect(res.status).toBe(201)
+        .post(`/pagamentos/${pagamentoId}`)
+      expect(res.status).toBe(200)
+    })
+
+    test('pagamento permanece pago=0 antes da confirmação', async () => {
+      const pag = await getAsync<{ pago: number }>(
+        testDb,
+        'SELECT pago FROM pagamentos WHERE pagamento_id = ?',
+        [pagamentoId]
+      )
+      expect(pag?.pago).toBe(0)
     })
   })
 
@@ -100,9 +112,8 @@ describe('Pagamento Controller', () => {
 
   describe('GET /api/kofrinhos/:id/pagamentos', () => {
     test('retorna lista de pagamentos com nome do depositante', async () => {
-      // Garante pelo menos um pagamento registrado
-      await request(testServer.app)
-        .post(`/kofrinho/${kofrinhoId}/depositante/${depositanteId}`)
+      const uuid = randomUUID()
+      await inserirPagamento(testDb, uuid, kofrinhoId, depositanteId, 500, 1)
 
       const res = await request(testServer.app)
         .get(`/api/kofrinhos/${kofrinhoId}/pagamentos`)
@@ -117,6 +128,8 @@ describe('Pagamento Controller', () => {
       expect(pag.valor).toBe(500)
       expect(pag.kofrinho_id).toBe(kofrinhoId)
       expect(pag.depositante_id).toBe(depositanteId)
+      expect(pag.pagamento_id).toBeDefined()
+      expect(pag.pago).toBeDefined()
       expect(pag.criado_em).toBeDefined()
     })
 
@@ -153,10 +166,8 @@ describe('Pagamento Controller', () => {
     })
 
     test('pagamentos aparecem em ordem decrescente de data', async () => {
-      await request(testServer.app)
-        .post(`/kofrinho/${kofrinhoId}/depositante/${depositanteId}`)
-      await request(testServer.app)
-        .post(`/kofrinho/${kofrinhoId}/depositante/${depositanteId}`)
+      await inserirPagamento(testDb, randomUUID(), kofrinhoId, depositanteId, 500, 1)
+      await inserirPagamento(testDb, randomUUID(), kofrinhoId, depositanteId, 500, 1)
 
       const res = await request(testServer.app)
         .get(`/api/kofrinhos/${kofrinhoId}/pagamentos`)

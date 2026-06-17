@@ -38,8 +38,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server running on port 3000' })
 })
 
-// Webhook Confrapix: confirma pagamento de um depositante (sem auth)
-app.post('/kofrinho/:kofrinhoId/depositante/:depositanteId', registrarPagamento)
+// Webhook Confrapix: confirma pagamento (sem auth)
+app.post('/pagamentos/:pagamentoId', registrarPagamento)
 
 // Catch-all: rotas não encontradas retornam JSON, nunca HTML
 app.use((_req, res) => {

@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import sqlite3 from 'sqlite3'
 import { allAsync, runAsync } from '../database/db.js'
 import { sendAgendamentoEmail } from './emailService.js'
@@ -100,11 +101,17 @@ export async function processarAgendamentos(
   let enviados = 0
   for (const ag of pendentes) {
     try {
+      const pagamentoId = randomUUID()
+
+      await runDbAsync(db,
+        'INSERT INTO pagamentos (pagamento_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, 0)',
+        [pagamentoId, ag.kofrinho_id, ag.depositante_id, ag.valor]
+      )
+
       const payload = construirPayloadConfrapix(
         ag.valor,
         ag.kofrinho_descricao,
-        ag.kofrinho_id,
-        ag.depositante_id,
+        pagamentoId,
         agora
       )
       const { pixUrl, pixCode } = await confrapixFn(payload)

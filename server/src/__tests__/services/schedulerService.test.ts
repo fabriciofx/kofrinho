@@ -103,33 +103,34 @@ describe('formatarDataExpiracao', () => {
 
 describe('construirPayloadConfrapix', () => {
   const agora = new Date('2025-06-15T08:00:00.000Z')
+  const uuid = 'a1b2c3d4-e5f6-4a7b-8c9d-e0f1a2b3c4d5'
 
   beforeEach(() => { process.env.KOFRINHO_API_URL = 'https://api.mandacaru.org' })
   afterEach(() => { delete process.env.KOFRINHO_API_URL })
 
   test('amount é o valor do depositante', () => {
-    const p = construirPayloadConfrapix(2500, null, 1, 1, agora)
+    const p = construirPayloadConfrapix(2500, null, uuid, agora)
     expect(p.amount).toBe(2500)
   })
 
   test('description é a descrição do kofrinho', () => {
-    const p = construirPayloadConfrapix(100, 'Férias 2025', 1, 1, agora)
+    const p = construirPayloadConfrapix(100, 'Férias 2025', uuid, agora)
     expect(p.description).toBe('Férias 2025')
   })
 
   test('description é string vazia quando descrição é null', () => {
-    const p = construirPayloadConfrapix(100, null, 1, 1, agora)
+    const p = construirPayloadConfrapix(100, null, uuid, agora)
     expect(p.description).toBe('')
   })
 
   test('expiration_date é 24h no futuro no formato correto', () => {
-    const p = construirPayloadConfrapix(100, null, 1, 1, agora)
+    const p = construirPayloadConfrapix(100, null, uuid, agora)
     expect(p.expiration_date).toBe('2025-06-16 08:00:00')
   })
 
-  test('callback_url contém kofrinho_id e depositante_id', () => {
-    const p = construirPayloadConfrapix(100, null, 42, 7, agora)
-    expect(p.callback_url).toBe('https://api.mandacaru.org/kofrinho/42/depositante/7')
+  test('callback_url contém o pagamento_id', () => {
+    const p = construirPayloadConfrapix(100, null, uuid, agora)
+    expect(p.callback_url).toBe(`https://api.mandacaru.org/pagamentos/${uuid}`)
   })
 })
 
@@ -378,8 +379,8 @@ describe('processarAgendamentos', () => {
     const payload = mockConfrapixFn.mock.calls[0][0]
     expect(payload.amount).toBe(1500)
     expect(payload.description).toBe('Férias 2025')
-    expect(payload.callback_url).toBe(
-      `https://api.mandacaru.org/kofrinho/${kfId}/depositante/${depId}`
+    expect(payload.callback_url).toMatch(
+      /^https:\/\/api\.mandacaru\.org\/pagamentos\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
     )
     expect(payload.expiration_date).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
   })
