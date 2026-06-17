@@ -84,10 +84,6 @@
   border-radius: 12px;
   padding: 0.4rem 0.75rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  width: fit-content;
-  height: fit-content;
-  min-width: 100px;
-  max-width: 100%;
   align-self: center;
   margin-bottom: 1.5rem;
 }
@@ -392,11 +388,9 @@
 }
 
 .btn-novo-depositante {
-  flex: 0 0 auto;
-  min-width: auto;
+  width: 10px;
   font-size: 0.875rem;
   padding: 0.45rem 1rem;
-  white-space: nowrap;
 }
 
 .depositantes-section h2 {
