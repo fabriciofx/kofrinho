@@ -125,6 +125,13 @@ describe('Pagamento Controller', () => {
       expect(res.status).toBe(200)
     })
 
+    test('retorna 200 com envio de e-mail em background (NODE_ENV=test pula o Resend)', async () => {
+      // sendPagamentoConfirmadoEmail retorna cedo em NODE_ENV=test sem lançar,
+      // garantindo que o webhook sempre retorna 200 independente do e-mail
+      const res = await request(testServer.app).post(`/api/pagamentos/${pagamentoId}`)
+      expect(res.status).toBe(200)
+    })
+
     test('pagamento permanece pago=0 antes da confirmação', async () => {
       const pag = await getAsync<{ pago: number }>(
         testDb,

@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import { getAsync, allAsync, runAsync } from '../database/db.js'
 import { AuthRequest } from '../middleware/auth.js'
 import { Pagamento } from '../types/index.js'
+import { sendPagamentoConfirmadoEmail } from '../services/emailService.js'
 
 // ─── SSE: registro de clientes por kofrinho ───────────────────────────────────
 const sseClients = new Map<number, Set<Response>>()
@@ -93,6 +94,36 @@ export async function registrarPagamento(req: DbInjectedRequest, res: Response) 
     )
 
     notificarKofrinho(pagamento.kofrinho_id)
+
+    // Busca dados para o e-mail de confirmação e dispara de forma assíncrona
+    const dadosEmail = await getDbAsync<{
+      pago_em: string
+      valor: number
+      depositante_nome: string
+      depositante_email: string | null
+      kofrinho_nome: string
+      kofrinho_descricao: string | null
+    }>(req,
+      `SELECT p.pago_em, p.valor,
+              d.nome AS depositante_nome, d.email AS depositante_email,
+              k.nome AS kofrinho_nome, k.descricao AS kofrinho_descricao
+       FROM pagamentos p
+       JOIN depositantes d ON p.depositante_id = d.id
+       JOIN kofrinhos k ON p.kofrinho_id = k.id
+       WHERE p.pagamento_id = ?`,
+      [pagamentoId]
+    )
+
+    if (dadosEmail?.depositante_email) {
+      sendPagamentoConfirmadoEmail(
+        dadosEmail.depositante_email,
+        dadosEmail.depositante_nome,
+        dadosEmail.kofrinho_nome,
+        dadosEmail.kofrinho_descricao,
+        dadosEmail.valor,
+        dadosEmail.pago_em
+      ).catch(err => console.error('❌ Erro ao enviar e-mail de confirmação:', err))
+    }
 
     console.log(`✅ Pagamento confirmado: ${pagamentoId}`)
     return res.status(200).json({ message: 'Pagamento confirmado com sucesso' })

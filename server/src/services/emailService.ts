@@ -157,3 +157,61 @@ export async function sendAgendamentoEmail(
 
   console.log(`📧 Resend: e-mail enviado para ${emailDepositante}`)
 }
+
+// ── Confirmação de pagamento para o depositante ───────────────────────────────
+
+export async function sendPagamentoConfirmadoEmail(
+  emailDepositante: string,
+  nomeDepositante: string,
+  nomeKofrinho: string,
+  descricaoKofrinho: string | null,
+  valor: number,
+  pago_em: string
+): Promise<void> {
+  if (process.env.NODE_ENV === 'test') return
+
+  const valorFormatado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  // pago_em vem do SQLite como 'YYYY-MM-DD HH:MM:SS' UTC — adiciona 'Z' para parse correto
+  const dataHora = new Date(pago_em.replace(' ', 'T') + 'Z')
+    .toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+
+  const referencia = descricaoKofrinho
+    ? `${nomeKofrinho} — ${descricaoKofrinho}`
+    : nomeKofrinho
+
+  const subject = `Depósito de ${valorFormatado} confirmado no Kofrinho "${nomeKofrinho}"`
+  const html = `
+    <h2>Depósito confirmado! ✅</h2>
+    <p>Olá, <strong>${nomeDepositante}</strong>!</p>
+    <p>Seu depósito no Kofrinho foi confirmado com sucesso.</p>
+    <table style="border-collapse:collapse;margin:1.5rem 0;">
+      <tr>
+        <td style="padding:8px 16px 8px 0;color:#666;">Kofrinho</td>
+        <td style="padding:8px 0;font-weight:bold;">${referencia}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 16px 8px 0;color:#666;">Valor</td>
+        <td style="padding:8px 0;font-weight:bold;">${valorFormatado}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 16px 8px 0;color:#666;">Data e hora</td>
+        <td style="padding:8px 0;">${dataHora} (horário de Brasília)</td>
+      </tr>
+    </table>
+    <p style="color:#888;font-size:0.85rem;">Este e-mail foi gerado automaticamente pelo Kofrinho.</p>
+  `
+
+  const resend = new Resend(carregarResendApiKey())
+  const { error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM || 'Kofrinho <noreply@mandacaru.org>',
+    to: emailDepositante,
+    subject,
+    html,
+  })
+
+  if (error) {
+    throw new Error(`Resend: ${error.message}`)
+  }
+
+  console.log(`📧 Confirmação de pagamento enviada para ${emailDepositante}`)
+}
