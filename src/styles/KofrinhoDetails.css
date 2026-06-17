@@ -392,6 +392,8 @@
 }
 
 .btn-novo-depositante {
+  flex: 0 0 auto;
+  min-width: auto;
   font-size: 0.875rem;
   padding: 0.45rem 1rem;
   white-space: nowrap;
