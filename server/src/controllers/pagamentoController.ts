@@ -3,6 +3,29 @@ import { getAsync, allAsync, runAsync } from '../database/db.js'
 import { AuthRequest } from '../middleware/auth.js'
 import { Pagamento } from '../types/index.js'
 
+// ─── SSE: registro de clientes por kofrinho ───────────────────────────────────
+const sseClients = new Map<number, Set<Response>>()
+
+function adicionarSseClient(kofrinhoId: number, res: Response): void {
+  if (!sseClients.has(kofrinhoId)) sseClients.set(kofrinhoId, new Set())
+  sseClients.get(kofrinhoId)!.add(res)
+}
+
+function removerSseClient(kofrinhoId: number, res: Response): void {
+  const set = sseClients.get(kofrinhoId)
+  if (!set) return
+  set.delete(res)
+  if (set.size === 0) sseClients.delete(kofrinhoId)
+}
+
+function notificarKofrinho(kofrinhoId: number): void {
+  const clients = sseClients.get(kofrinhoId)
+  if (!clients) return
+  for (const res of clients) {
+    res.write(`data: ${JSON.stringify({ tipo: 'pagamento_confirmado' })}\n\n`)
+  }
+}
+
 interface DbInjectedRequest extends Request {
   testDb?: any
 }
@@ -56,8 +79,8 @@ export async function registrarPagamento(req: DbInjectedRequest, res: Response) 
   try {
     const { pagamentoId } = req.params
 
-    const pagamento = await getDbAsync<{ id: number; pago: number }>(req,
-      'SELECT id, pago FROM pagamentos WHERE pagamento_id = ?',
+    const pagamento = await getDbAsync<{ id: number; pago: number; kofrinho_id: number }>(req,
+      'SELECT id, pago, kofrinho_id FROM pagamentos WHERE pagamento_id = ?',
       [pagamentoId]
     )
     if (!pagamento) {
@@ -69,12 +92,46 @@ export async function registrarPagamento(req: DbInjectedRequest, res: Response) 
       [pagamentoId]
     )
 
+    notificarKofrinho(pagamento.kofrinho_id)
+
     console.log(`✅ Pagamento confirmado: ${pagamentoId}`)
     return res.status(200).json({ message: 'Pagamento confirmado com sucesso' })
   } catch (err) {
     console.error('❌ Erro ao confirmar pagamento:', err)
     res.status(500).json({ erro: 'Erro interno do servidor' })
   }
+}
+
+// SSE: stream de eventos de pagamento para um kofrinho (requer auth)
+// GET /api/kofrinhos/:id/pagamentos/eventos
+export async function streamPagamentosEventos(req: DbInjectedAuthRequest, res: Response): Promise<void> {
+  const kofrinhoId = parseInt(req.params.id)
+  const userId = req.userId!
+
+  const kofrinho = await getDbAsync<{ id: number }>(req,
+    'SELECT id FROM kofrinhos WHERE id = ? AND user_id = ?',
+    [kofrinhoId, userId]
+  )
+  if (!kofrinho) {
+    res.status(404).json({ erro: 'Kofrinho não encontrado' })
+    return
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.flushHeaders()
+
+  res.write(': connected\n\n')
+  adicionarSseClient(kofrinhoId, res)
+
+  // Heartbeat a cada 30s para manter a conexão viva em proxies
+  const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 30000)
+
+  res.on('close', () => {
+    clearInterval(heartbeat)
+    removerSseClient(kofrinhoId, res)
+  })
 }
 
 // Listagem de pagamentos confirmados de um kofrinho (requer auth)

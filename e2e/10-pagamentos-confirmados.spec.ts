@@ -189,6 +189,36 @@ test.describe('Depósitos Confirmados', () => {
     await expect(thead.locator('text=Data')).toBeVisible()
   })
 
+  test('atualiza tabela automaticamente via SSE quando pagamento é confirmado', async ({ authenticatedPage: page }) => {
+    await page.waitForLoadState('networkidle')
+
+    const nome = `Kofrinho ${Date.now()}`
+    await criarKofrinhoUI(page, nome)
+
+    const kofrinhoId = await getKofrinhoId(page, nome)
+    const depositante = await criarDepositante(page, kofrinhoId, 'SSE Depositante', 300)
+
+    const pagamentoId = `e2e-sse-${Date.now()}`
+    await criarPagamentoPendente(page, pagamentoId, kofrinhoId, depositante.id, 300)
+
+    // Navega para a página de detalhes (inicia conexão SSE)
+    await page.locator('.kofrinho-card').filter({ hasText: nome })
+      .locator('button:has-text("Ver Detalhes")').click()
+    await page.waitForURL(/\/kofrinho\/\d+/, { timeout: 8000 })
+    await page.waitForLoadState('networkidle')
+
+    // Confirma que ainda não há pagamentos confirmados
+    await expect(page.locator('text=Nenhum depósito confirmado ainda.')).toBeVisible()
+
+    // Confirma o pagamento via webhook (simula chamada da Confrapix)
+    await confirmarPagamento(page, pagamentoId)
+
+    // A tabela deve atualizar automaticamente via SSE sem reload da página
+    await expect(page.locator('.pagamentos-table')).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('.pagamentos-table tbody').locator('text=SSE Depositante')).toBeVisible()
+    await expect(page.locator('text=Nenhum depósito confirmado ainda.')).not.toBeVisible()
+  })
+
   test('exibe data e hora do pagamento (pago_em) na linha da tabela', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
 

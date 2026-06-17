@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useKofrinho, type Depositante } from '../context/KofrinhoContext'
 import { Modal } from '../components/Modal'
 import EditDepositanteForm from '../components/EditDepositanteForm'
+import { API_BASE_URL, getStoredTokens } from '../api/client'
 import '../styles/KofrinhoDetails.css'
 
 const RECORRENCIA_LABEL: Record<string, string> = {
@@ -29,6 +30,47 @@ function KofrinhoDetails() {
       fetchPagamentos(parseInt(id))
     }
   }, [id, selectKofrinho, fetchDepositantes, fetchPagamentos])
+
+  // SSE: atualiza "Depósitos Confirmados" em tempo real quando um pagamento é confirmado
+  useEffect(() => {
+    if (!id) return
+    const kofrinhoId = parseInt(id)
+    const controller = new AbortController()
+    let reconnectTimeout: ReturnType<typeof setTimeout>
+
+    async function conectar() {
+      try {
+        const tokens = getStoredTokens()
+        if (!tokens?.token) return
+
+        const res = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/pagamentos/eventos`, {
+          headers: { Authorization: `Bearer ${tokens.token}` },
+          signal: controller.signal,
+        })
+        if (!res.ok || !res.body) return
+
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          if (decoder.decode(value).includes('pagamento_confirmado')) {
+            fetchPagamentos(kofrinhoId)
+          }
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          reconnectTimeout = setTimeout(conectar, 5000)
+        }
+      }
+    }
+
+    conectar()
+    return () => {
+      controller.abort()
+      clearTimeout(reconnectTimeout)
+    }
+  }, [id, fetchPagamentos])
 
   useEffect(() => {
     if (selectedKofrinho) {
