@@ -105,7 +105,7 @@ describe('construirPayloadConfrapix', () => {
   const agora = new Date('2025-06-15T08:00:00.000Z')
   const uuid = 'a1b2c3d4-e5f6-4a7b-8c9d-e0f1a2b3c4d5'
 
-  beforeEach(() => { process.env.KOFRINHO_API_URL = 'https://api.mandacaru.org' })
+  beforeEach(() => { process.env.KOFRINHO_API_URL = 'https://api.mandacaru.org/api' })
   afterEach(() => { delete process.env.KOFRINHO_API_URL })
 
   test('amount é o valor do depositante', () => {
@@ -128,9 +128,9 @@ describe('construirPayloadConfrapix', () => {
     expect(p.expiration_date).toBe('2025-06-16 08:00:00')
   })
 
-  test('callback_url contém o pagamento_id', () => {
+  test('callback_url contém /api/pagamentos/ e o pagamento_id', () => {
     const p = construirPayloadConfrapix(100, null, uuid, agora)
-    expect(p.callback_url).toBe(`https://api.mandacaru.org/pagamentos/${uuid}`)
+    expect(p.callback_url).toBe(`https://api.mandacaru.org/api/pagamentos/${uuid}`)
   })
 })
 
@@ -181,7 +181,7 @@ describe('processarAgendamentos', () => {
 
   beforeEach(async () => {
     db = await setupTestDb()
-    process.env.KOFRINHO_API_URL = 'https://api.mandacaru.org'
+    process.env.KOFRINHO_API_URL = 'https://api.mandacaru.org/api'
     mockSendFn = jest.fn().mockImplementation(() => Promise.resolve())
     mockConfrapixFn = jest.fn().mockImplementation(() => Promise.resolve({
       pixUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
@@ -380,7 +380,7 @@ describe('processarAgendamentos', () => {
     expect(payload.amount).toBe(1500)
     expect(payload.description).toBe('Férias 2025')
     expect(payload.callback_url).toMatch(
-      /^https:\/\/api\.mandacaru\.org\/pagamentos\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+      /^https:\/\/api\.mandacaru\.org\/api\/pagamentos\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
     )
     expect(payload.expiration_date).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
   })

@@ -316,7 +316,7 @@ function KofrinhoDetails() {
                 <tr key={p.id}>
                   <td>{p.depositante_nome}</td>
                   <td>{p.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                  <td>{new Date(p.criado_em).toLocaleString('pt-BR')}</td>
+                  <td>{p.pago_em ? new Date(p.pago_em).toLocaleString('pt-BR') : '—'}</td>
                 </tr>
               ))}
             </tbody>

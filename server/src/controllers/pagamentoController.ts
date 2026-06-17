@@ -51,7 +51,7 @@ function runDbAsync(req: any, sql: string, params: any[]): Promise<void> {
 }
 
 // Webhook chamado pela Confrapix quando o pagamento é confirmado
-// POST /pagamentos/:pagamentoId
+// POST /api/pagamentos/:pagamentoId
 export async function registrarPagamento(req: DbInjectedRequest, res: Response) {
   try {
     const { pagamentoId } = req.params
@@ -65,7 +65,7 @@ export async function registrarPagamento(req: DbInjectedRequest, res: Response) 
     }
 
     await runDbAsync(req,
-      'UPDATE pagamentos SET pago = 1 WHERE pagamento_id = ?',
+      'UPDATE pagamentos SET pago = 1, pago_em = CURRENT_TIMESTAMP WHERE pagamento_id = ?',
       [pagamentoId]
     )
 
@@ -93,12 +93,12 @@ export async function listPagamentos(req: DbInjectedAuthRequest, res: Response) 
     }
 
     const pagamentos = await allDbAsync<Pagamento>(req,
-      `SELECT p.id, p.pagamento_id, p.kofrinho_id, p.depositante_id, p.valor, p.pago, p.criado_em,
+      `SELECT p.id, p.pagamento_id, p.kofrinho_id, p.depositante_id, p.valor, p.pago, p.pago_em, p.criado_em,
               d.nome AS depositante_nome
        FROM pagamentos p
        JOIN depositantes d ON p.depositante_id = d.id
        WHERE p.kofrinho_id = ? AND p.pago = 1
-       ORDER BY p.criado_em DESC`,
+       ORDER BY p.pago_em DESC`,
       [kofrinhoId]
     )
 

@@ -37,6 +37,7 @@ export interface Pagamento {
   depositante_nome: string
   valor: number
   pago: number
+  pago_em: string | null
   criado_em: string
 }
 

@@ -96,6 +96,7 @@ export async function initializeDatabase() {
         depositante_id INTEGER NOT NULL,
         valor          REAL NOT NULL,
         pago           INTEGER NOT NULL DEFAULT 0,
+        pago_em        DATETIME,
         criado_em      DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (kofrinho_id)    REFERENCES kofrinhos(id)    ON DELETE CASCADE,
         FOREIGN KEY (depositante_id) REFERENCES depositantes(id) ON DELETE CASCADE
@@ -110,6 +111,7 @@ export async function initializeDatabase() {
     // Migrations: adiciona colunas em bancos existentes (ignorado se já existirem)
     try { await runAsync('ALTER TABLE pagamentos ADD COLUMN pagamento_id TEXT') } catch { /* já existe */ }
     try { await runAsync('ALTER TABLE pagamentos ADD COLUMN pago INTEGER DEFAULT 0') } catch { /* já existe */ }
+    try { await runAsync('ALTER TABLE pagamentos ADD COLUMN pago_em DATETIME') } catch { /* já existe */ }
 
     console.log('✅ Banco de dados inicializado com sucesso')
   } catch (err) {

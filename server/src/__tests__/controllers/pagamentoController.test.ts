@@ -11,12 +11,13 @@ async function inserirPagamento(
   kofrinhoId: number,
   depositanteId: number,
   valor: number,
-  pago = 0
+  pago = 0,
+  pago_em: string | null = null
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     db.run(
-      'INSERT INTO pagamentos (pagamento_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, ?)',
-      [pagamentoId, kofrinhoId, depositanteId, valor, pago],
+      'INSERT INTO pagamentos (pagamento_id, kofrinho_id, depositante_id, valor, pago, pago_em) VALUES (?, ?, ?, ?, ?, ?)',
+      [pagamentoId, kofrinhoId, depositanteId, valor, pago, pago_em],
       (err) => (err ? reject(err) : resolve())
     )
   })
@@ -57,7 +58,7 @@ describe('Pagamento Controller', () => {
 
   // ─── POST /pagamentos/:pagamentoId (webhook) ───────────────────────────────
 
-  describe('POST /pagamentos/:pagamentoId (webhook)', () => {
+  describe('POST /api/pagamentos/:pagamentoId (webhook)', () => {
     let pagamentoId: string
 
     beforeEach(async () => {
@@ -67,7 +68,7 @@ describe('Pagamento Controller', () => {
 
     test('confirma pagamento e retorna 200', async () => {
       const res = await request(testServer.app)
-        .post(`/pagamentos/${pagamentoId}`)
+        .post(`/api/pagamentos/${pagamentoId}`)
 
       expect(res.status).toBe(200)
       expect(res.body.message).toBe('Pagamento confirmado com sucesso')
@@ -75,7 +76,7 @@ describe('Pagamento Controller', () => {
 
     test('atualiza pago para 1 no banco de dados', async () => {
       await request(testServer.app)
-        .post(`/pagamentos/${pagamentoId}`)
+        .post(`/api/pagamentos/${pagamentoId}`)
 
       const pag = await getAsync<{ pago: number }>(
         testDb,
@@ -85,16 +86,42 @@ describe('Pagamento Controller', () => {
       expect(pag?.pago).toBe(1)
     })
 
+    test('define pago_em com o timestamp da confirmação', async () => {
+      const antes = new Date()
+      await request(testServer.app).post(`/api/pagamentos/${pagamentoId}`)
+      const depois = new Date()
+
+      const pag = await getAsync<{ pago_em: string }>(
+        testDb,
+        'SELECT pago_em FROM pagamentos WHERE pagamento_id = ?',
+        [pagamentoId]
+      )
+      expect(pag?.pago_em).toBeDefined()
+      // SQLite CURRENT_TIMESTAMP retorna UTC sem sufixo 'Z'; adiciona para parse correto
+      const pago_em = new Date(pag!.pago_em.replace(' ', 'T') + 'Z')
+      expect(pago_em.getTime()).toBeGreaterThanOrEqual(antes.getTime() - 2000)
+      expect(pago_em.getTime()).toBeLessThanOrEqual(depois.getTime() + 2000)
+    })
+
+    test('pago_em é null antes da confirmação', async () => {
+      const pag = await getAsync<{ pago_em: string | null }>(
+        testDb,
+        'SELECT pago_em FROM pagamentos WHERE pagamento_id = ?',
+        [pagamentoId]
+      )
+      expect(pag?.pago_em).toBeNull()
+    })
+
     test('retorna 404 quando pagamento_id não existe', async () => {
       const res = await request(testServer.app)
-        .post('/pagamentos/uuid-inexistente')
+        .post('/api/pagamentos/uuid-inexistente')
 
       expect(res.status).toBe(404)
     })
 
     test('não requer autenticação (é um webhook público)', async () => {
       const res = await request(testServer.app)
-        .post(`/pagamentos/${pagamentoId}`)
+        .post(`/api/pagamentos/${pagamentoId}`)
       expect(res.status).toBe(200)
     })
 
@@ -111,9 +138,10 @@ describe('Pagamento Controller', () => {
   // ─── GET /api/kofrinhos/:id/pagamentos ────────────────────────────────────
 
   describe('GET /api/kofrinhos/:id/pagamentos', () => {
-    test('retorna lista de pagamentos com nome do depositante', async () => {
+    test('retorna lista de pagamentos com nome do depositante e pago_em', async () => {
       const uuid = randomUUID()
-      await inserirPagamento(testDb, uuid, kofrinhoId, depositanteId, 500, 1)
+      await inserirPagamento(testDb, uuid, kofrinhoId, depositanteId, 500, 0)
+      await request(testServer.app).post(`/api/pagamentos/${uuid}`)
 
       const res = await request(testServer.app)
         .get(`/api/kofrinhos/${kofrinhoId}/pagamentos`)
@@ -123,13 +151,15 @@ describe('Pagamento Controller', () => {
       expect(Array.isArray(res.body.pagamentos)).toBe(true)
       expect(res.body.pagamentos.length).toBeGreaterThan(0)
 
-      const pag = res.body.pagamentos[0]
+      const pag = res.body.pagamentos.find((p: any) => p.pagamento_id === uuid)
+      expect(pag).toBeDefined()
       expect(pag.depositante_nome).toBe('João Silva')
       expect(pag.valor).toBe(500)
       expect(pag.kofrinho_id).toBe(kofrinhoId)
       expect(pag.depositante_id).toBe(depositanteId)
       expect(pag.pagamento_id).toBeDefined()
-      expect(pag.pago).toBeDefined()
+      expect(pag.pago).toBe(1)
+      expect(pag.pago_em).toBeDefined()
       expect(pag.criado_em).toBeDefined()
     })
 
@@ -165,19 +195,24 @@ describe('Pagamento Controller', () => {
       expect(res.status).toBe(404)
     })
 
-    test('pagamentos aparecem em ordem decrescente de data', async () => {
-      await inserirPagamento(testDb, randomUUID(), kofrinhoId, depositanteId, 500, 1)
-      await inserirPagamento(testDb, randomUUID(), kofrinhoId, depositanteId, 500, 1)
+    test('pagamentos aparecem em ordem decrescente de pago_em', async () => {
+      const uuid1 = randomUUID()
+      const uuid2 = randomUUID()
+      // pago_em explícito para garantir ordem independente da resolução de segundos do SQLite
+      await inserirPagamento(testDb, uuid1, kofrinhoId, depositanteId, 500, 1, '2026-01-01 09:00:00')
+      await inserirPagamento(testDb, uuid2, kofrinhoId, depositanteId, 500, 1, '2026-01-01 10:00:00')
 
       const res = await request(testServer.app)
         .get(`/api/kofrinhos/${kofrinhoId}/pagamentos`)
         .set('Authorization', `Bearer ${validToken}`)
 
-      const pags = res.body.pagamentos
-      for (let i = 0; i < pags.length - 1; i++) {
-        expect(new Date(pags[i].criado_em).getTime())
-          .toBeGreaterThanOrEqual(new Date(pags[i + 1].criado_em).getTime())
-      }
+      const pags = res.body.pagamentos.filter(
+        (p: any) => p.pagamento_id === uuid1 || p.pagamento_id === uuid2
+      )
+      expect(pags.length).toBe(2)
+      // uuid2 tem pago_em mais recente → deve aparecer primeiro
+      expect(pags[0].pagamento_id).toBe(uuid2)
+      expect(pags[1].pagamento_id).toBe(uuid1)
     })
 
     test('não retorna pagamentos com pago=0', async () => {
@@ -217,14 +252,17 @@ describe('Pagamento Controller', () => {
         .set('Authorization', `Bearer ${validToken}`)
       expect(antes.body.pagamentos.some((p: any) => p.pagamento_id === uuid)).toBe(false)
 
-      // Confirma via webhook
-      await request(testServer.app).post(`/pagamentos/${uuid}`)
+      // Confirma via webhook (nova rota com /api/)
+      await request(testServer.app).post(`/api/pagamentos/${uuid}`)
 
-      // Após a confirmação: aparece
+      // Após a confirmação: aparece com pago_em preenchido
       const depois = await request(testServer.app)
         .get(`/api/kofrinhos/${kofrinhoId}/pagamentos`)
         .set('Authorization', `Bearer ${validToken}`)
-      expect(depois.body.pagamentos.some((p: any) => p.pagamento_id === uuid)).toBe(true)
+      const pag = depois.body.pagamentos.find((p: any) => p.pagamento_id === uuid)
+      expect(pag).toBeDefined()
+      expect(pag.pago_em).toBeDefined()
+      expect(pag.pago_em).not.toBeNull()
     })
   })
 })

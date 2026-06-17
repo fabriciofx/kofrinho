@@ -40,7 +40,7 @@ app.get('/api/health', (req, res) => {
 })
 
 // Webhook Confrapix: confirma pagamento (sem auth)
-app.post('/pagamentos/:pagamentoId', registrarPagamento)
+app.post('/api/pagamentos/:pagamentoId', registrarPagamento)
 
 // Rota auxiliar para criar pagamentos pendentes em testes E2E (não disponível em produção)
 if (process.env.TEST_ROUTES === 'true') {

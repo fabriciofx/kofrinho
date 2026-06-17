@@ -78,14 +78,14 @@ async function criarPagamentoPendente(
   expect(result.status).toBe(201)
 }
 
-// Confirma pagamento via webhook público
+// Confirma pagamento via webhook público (POST /api/pagamentos/:pagamentoId)
 async function confirmarPagamento(page: any, pagamentoId: string) {
   const result = await page.evaluate(
-    async ({ server, pagamentoId }: any) => {
-      const res = await fetch(`${server}/pagamentos/${pagamentoId}`, { method: 'POST' })
+    async ({ api, pagamentoId }: any) => {
+      const res = await fetch(`${api}/pagamentos/${pagamentoId}`, { method: 'POST' })
       return { status: res.status }
     },
-    { server: SERVER, pagamentoId }
+    { api: API, pagamentoId }
   )
   expect(result.status).toBe(200)
 }
@@ -187,5 +187,39 @@ test.describe('Depósitos Confirmados', () => {
     await expect(thead.locator('text=Depositante')).toBeVisible()
     await expect(thead.locator('text=Valor')).toBeVisible()
     await expect(thead.locator('text=Data')).toBeVisible()
+  })
+
+  test('exibe data e hora do pagamento (pago_em) na linha da tabela', async ({ authenticatedPage: page }) => {
+    await page.waitForLoadState('networkidle')
+
+    const nome = `Kofrinho ${Date.now()}`
+    await criarKofrinhoUI(page, nome)
+
+    const kofrinhoId = await getKofrinhoId(page, nome)
+    const depositante = await criarDepositante(page, kofrinhoId, 'Carlos', 999)
+
+    const pagamentoId = `e2e-pago-em-${Date.now()}`
+    await criarPagamentoPendente(page, pagamentoId, kofrinhoId, depositante.id, 999)
+
+    const dataAntes = new Date()
+    await confirmarPagamento(page, pagamentoId)
+    const dataDepois = new Date()
+
+    await page.locator('.kofrinho-card').filter({ hasText: nome })
+      .locator('button:has-text("Ver Detalhes")').click()
+    await page.waitForURL(/\/kofrinho\/\d+/, { timeout: 8000 })
+    await page.waitForLoadState('networkidle')
+
+    await expect(page.locator('.pagamentos-table')).toBeVisible({ timeout: 8000 })
+
+    // Verifica que a célula de data exibe um valor formatado (não "—")
+    const celulaData = page.locator('.pagamentos-table tbody tr').first().locator('td').nth(2)
+    const textoData = await celulaData.innerText()
+    expect(textoData).not.toBe('—')
+    expect(textoData.length).toBeGreaterThan(5)
+
+    // Verifica que a data exibida é razoável (ano atual ou próximo)
+    const anoAtual = dataAntes.getFullYear()
+    expect(textoData).toContain(String(anoAtual))
   })
 })
