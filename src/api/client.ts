@@ -36,10 +36,12 @@ export interface KofrinhoResponse {
 
 export interface Pagamento {
   id: number
+  pagamento_id: string
   kofrinho_id: number
   depositante_id: number
   depositante_nome: string
   valor: number
+  pago: number
   criado_em: string
 }
 

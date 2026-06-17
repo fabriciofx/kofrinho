@@ -97,7 +97,7 @@ export async function listPagamentos(req: DbInjectedAuthRequest, res: Response) 
               d.nome AS depositante_nome
        FROM pagamentos p
        JOIN depositantes d ON p.depositante_id = d.id
-       WHERE p.kofrinho_id = ?
+       WHERE p.kofrinho_id = ? AND p.pago = 1
        ORDER BY p.criado_em DESC`,
       [kofrinhoId]
     )

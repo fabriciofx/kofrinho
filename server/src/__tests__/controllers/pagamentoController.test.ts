@@ -179,5 +179,52 @@ describe('Pagamento Controller', () => {
           .toBeGreaterThanOrEqual(new Date(pags[i + 1].criado_em).getTime())
       }
     })
+
+    test('não retorna pagamentos com pago=0', async () => {
+      const naoConfirmadoId = randomUUID()
+      await inserirPagamento(testDb, naoConfirmadoId, kofrinhoId, depositanteId, 200, 0)
+
+      const res = await request(testServer.app)
+        .get(`/api/kofrinhos/${kofrinhoId}/pagamentos`)
+        .set('Authorization', `Bearer ${validToken}`)
+
+      expect(res.status).toBe(200)
+      const pags = res.body.pagamentos
+      expect(pags.some((p: any) => p.pagamento_id === naoConfirmadoId)).toBe(false)
+    })
+
+    test('retorna apenas pagamentos com pago=1', async () => {
+      const confirmadoId = randomUUID()
+      await inserirPagamento(testDb, confirmadoId, kofrinhoId, depositanteId, 300, 1)
+
+      const res = await request(testServer.app)
+        .get(`/api/kofrinhos/${kofrinhoId}/pagamentos`)
+        .set('Authorization', `Bearer ${validToken}`)
+
+      expect(res.status).toBe(200)
+      const pags = res.body.pagamentos
+      expect(pags.some((p: any) => p.pagamento_id === confirmadoId)).toBe(true)
+      expect(pags.every((p: any) => p.pago === 1)).toBe(true)
+    })
+
+    test('pagamento passa a aparecer na lista após confirmação via webhook', async () => {
+      const uuid = randomUUID()
+      await inserirPagamento(testDb, uuid, kofrinhoId, depositanteId, 400, 0)
+
+      // Antes da confirmação: não aparece
+      const antes = await request(testServer.app)
+        .get(`/api/kofrinhos/${kofrinhoId}/pagamentos`)
+        .set('Authorization', `Bearer ${validToken}`)
+      expect(antes.body.pagamentos.some((p: any) => p.pagamento_id === uuid)).toBe(false)
+
+      // Confirma via webhook
+      await request(testServer.app).post(`/pagamentos/${uuid}`)
+
+      // Após a confirmação: aparece
+      const depois = await request(testServer.app)
+        .get(`/api/kofrinhos/${kofrinhoId}/pagamentos`)
+        .set('Authorization', `Bearer ${validToken}`)
+      expect(depois.body.pagamentos.some((p: any) => p.pagamento_id === uuid)).toBe(true)
+    })
   })
 })
