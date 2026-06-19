@@ -185,7 +185,7 @@ function KofrinhoDetails() {
         ← Voltar
       </button>
 
-      <div className="kofrinho-card">
+      <div className="kofrinho-info-card">
         <div className="kofrinho-card-header">
           <h2>Informações do Kofrinho</h2>
           {!isEditing && selectedKofrinho && (

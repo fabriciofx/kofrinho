@@ -79,7 +79,7 @@
   transform: translateX(-4px);
 }
 
-.kofrinho-card {
+.kofrinho-info-card {
   background: white;
   border-radius: 12px;
   padding: 0.4rem 0.75rem;
@@ -95,7 +95,7 @@
   margin-bottom: 0.35rem;
 }
 
-.kofrinho-card h2 {
+.kofrinho-info-card h2 {
   margin: 0;
   color: #333;
   font-size: 1.1rem;
@@ -514,11 +514,11 @@
     padding: 1rem;
   }
 
-  .kofrinho-card {
+  .kofrinho-info-card {
     padding: 1.5rem;
   }
 
-  .info-group {
+  .kofrinho-info-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;

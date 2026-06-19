@@ -35,8 +35,8 @@ test.describe('Kofrinho Details', () => {
 
     // Verify the details card is shown with correct data
     await expect(page.locator('h2:has-text("Informações do Kofrinho")')).toBeVisible({ timeout: 10000 })
-    await expect(page.locator('.info-group').filter({ hasText: kofrinhoName })).toBeVisible({ timeout: 5000 })
-    await expect(page.locator('.info-group').filter({ hasText: kofrinhoDesc })).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('.kofrinho-info-card').filter({ hasText: kofrinhoName })).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('.kofrinho-info-card').filter({ hasText: kofrinhoDesc })).toBeVisible({ timeout: 5000 })
 
     // Verify that no error messages are shown
     await expect(page.locator('text=Erro ao carregar Kofrinho')).not.toBeVisible()

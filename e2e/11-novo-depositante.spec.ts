@@ -21,7 +21,7 @@ test.describe('Botão Novo Depositante', () => {
     // A página deve exibir as seções principais sem crash
     await expect(page.locator('h2:has-text("Informações do Kofrinho")')).toBeVisible()
     await expect(page.locator('h2:has-text("Depositantes")')).toBeVisible()
-    await expect(page.locator('h2:has-text("Depósitos Confirmados")')).toBeVisible()
+    await expect(page.locator('h2:has-text("Solicitações")')).toBeVisible()
 
     // Não deve haver mensagem de erro na tela
     await expect(page.locator('text=Erro ao carregar Kofrinho')).not.toBeVisible()
