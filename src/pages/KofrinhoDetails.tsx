@@ -33,7 +33,7 @@ function KofrinhoDetails() {
     }
   }, [id, selectKofrinho, fetchDepositantes, fetchPagamentos])
 
-  // SSE: atualiza "Depósitos Confirmados" em tempo real quando um pagamento é confirmado
+  // SSE: atualiza "Solicitações" em tempo real quando um pagamento é confirmado
   useEffect(() => {
     if (!id) return
     const kofrinhoId = parseInt(id)
@@ -351,10 +351,10 @@ function KofrinhoDetails() {
       </div>
 
       <div className="pagamentos-section">
-        <h2>Depósitos Confirmados</h2>
+        <h2>Solicitações</h2>
 
         {pagamentos.length === 0 ? (
-          <p className="pagamentos-empty">Nenhum depósito confirmado ainda.</p>
+          <p className="pagamentos-empty">Nenhuma solicitação cadastrada ainda.</p>
         ) : (
           <table className="pagamentos-table">
             <thead>

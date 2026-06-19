@@ -90,8 +90,8 @@ async function confirmarPagamento(page: any, pagamentoId: string) {
   expect(result.status).toBe(200)
 }
 
-test.describe('Depósitos Confirmados', () => {
-  test('exibe a seção "Depósitos Confirmados" na página de detalhes', async ({ authenticatedPage: page }) => {
+test.describe('Solicitações', () => {
+  test('exibe a seção "Solicitações" na página de detalhes', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
 
     const nome = `Kofrinho ${Date.now()}`
@@ -101,10 +101,10 @@ test.describe('Depósitos Confirmados', () => {
       .locator('button:has-text("Ver Detalhes")').click()
     await page.waitForURL(/\/kofrinho\/\d+/, { timeout: 8000 })
 
-    await expect(page.locator('h2:has-text("Depósitos Confirmados")')).toBeVisible()
+    await expect(page.locator('h2:has-text("Solicitações")')).toBeVisible()
   })
 
-  test('exibe mensagem de vazio quando não há depósitos confirmados', async ({ authenticatedPage: page }) => {
+  test('exibe mensagem de vazio quando não há solicitações cadastradas', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
 
     const nome = `Kofrinho ${Date.now()}`
@@ -114,10 +114,10 @@ test.describe('Depósitos Confirmados', () => {
       .locator('button:has-text("Ver Detalhes")').click()
     await page.waitForURL(/\/kofrinho\/\d+/, { timeout: 8000 })
 
-    await expect(page.locator('text=Nenhum depósito confirmado ainda.')).toBeVisible()
+    await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).toBeVisible()
   })
 
-  test('não exibe pagamentos com pago=false no container Depósitos Confirmados', async ({ authenticatedPage: page }) => {
+  test('não exibe pagamentos com pago=false no container Solicitações', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
 
     const nome = `Kofrinho ${Date.now()}`
@@ -136,7 +136,7 @@ test.describe('Depósitos Confirmados', () => {
     await page.waitForURL(/\/kofrinho\/\d+/, { timeout: 8000 })
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('text=Nenhum depósito confirmado ainda.')).toBeVisible()
+    await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).toBeVisible()
     await expect(page.locator('.pagamentos-table')).not.toBeVisible()
   })
 
@@ -162,7 +162,7 @@ test.describe('Depósitos Confirmados', () => {
     await expect(page.locator('.pagamentos-table')).toBeVisible({ timeout: 8000 })
     await expect(page.locator('.pagamentos-table tbody').locator('text=João Confirmado')).toBeVisible()
     await expect(page.locator('.pagamentos-table tbody').locator('text=R$ 750,00')).toBeVisible()
-    await expect(page.locator('text=Nenhum depósito confirmado ainda.')).not.toBeVisible()
+    await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).not.toBeVisible()
   })
 
   test('tabela tem colunas Depositante, Valor e Data', async ({ authenticatedPage: page }) => {
@@ -208,7 +208,7 @@ test.describe('Depósitos Confirmados', () => {
     await page.waitForLoadState('networkidle')
 
     // Confirma que ainda não há pagamentos confirmados
-    await expect(page.locator('text=Nenhum depósito confirmado ainda.')).toBeVisible()
+    await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).toBeVisible()
 
     // Confirma o pagamento via webhook (simula chamada da Confrapix)
     await confirmarPagamento(page, pagamentoId)
@@ -216,7 +216,7 @@ test.describe('Depósitos Confirmados', () => {
     // A tabela deve atualizar automaticamente via SSE sem reload da página
     await expect(page.locator('.pagamentos-table')).toBeVisible({ timeout: 8000 })
     await expect(page.locator('.pagamentos-table tbody').locator('text=SSE Depositante')).toBeVisible()
-    await expect(page.locator('text=Nenhum depósito confirmado ainda.')).not.toBeVisible()
+    await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).not.toBeVisible()
   })
 
   test('exibe data e hora do pagamento (pago_em) na linha da tabela', async ({ authenticatedPage: page }) => {
