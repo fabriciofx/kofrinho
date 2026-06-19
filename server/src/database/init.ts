@@ -91,7 +91,7 @@ export async function initializeDatabase() {
     await runAsync(`
       CREATE TABLE IF NOT EXISTS pagamentos (
         id             INTEGER PRIMARY KEY AUTOINCREMENT,
-        pagamento_id   TEXT UNIQUE NOT NULL,
+        solicitacao_id   TEXT UNIQUE NOT NULL,
         kofrinho_id    INTEGER NOT NULL,
         depositante_id INTEGER NOT NULL,
         valor          REAL NOT NULL,
@@ -108,8 +108,8 @@ export async function initializeDatabase() {
       ON pagamentos(kofrinho_id)
     `)
 
-    // Migrations: adiciona colunas em bancos existentes (ignorado se já existirem)
-    try { await runAsync('ALTER TABLE pagamentos ADD COLUMN pagamento_id TEXT') } catch { /* já existe */ }
+    // Migrations: adiciona/renomeia colunas em bancos existentes (ignorado se já aplicado)
+    try { await runAsync('ALTER TABLE pagamentos RENAME COLUMN pagamento_id TO solicitacao_id') } catch { /* já renomeado ou não existe */ }
     try { await runAsync('ALTER TABLE pagamentos ADD COLUMN pago INTEGER DEFAULT 0') } catch { /* já existe */ }
     try { await runAsync('ALTER TABLE pagamentos ADD COLUMN pago_em DATETIME') } catch { /* já existe */ }
 

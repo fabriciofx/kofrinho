@@ -101,17 +101,17 @@ export async function processarAgendamentos(
   let enviados = 0
   for (const ag of pendentes) {
     try {
-      const pagamentoId = randomUUID()
+      const solicitacaoId = randomUUID()
 
       await runDbAsync(db,
-        'INSERT INTO pagamentos (pagamento_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, 0)',
-        [pagamentoId, ag.kofrinho_id, ag.depositante_id, ag.valor]
+        'INSERT INTO pagamentos (solicitacao_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, 0)',
+        [solicitacaoId, ag.kofrinho_id, ag.depositante_id, ag.valor]
       )
 
       const payload = construirPayloadConfrapix(
         ag.valor,
         ag.kofrinho_descricao,
-        pagamentoId,
+        solicitacaoId,
         agora
       )
       const { pixUrl, pixCode } = await confrapixFn(payload)

@@ -46,10 +46,10 @@ app.post('/api/solicitacoes/:solicitacaoId', registrarSolicitacao)
 if (process.env.TEST_ROUTES === 'true') {
   app.post('/test/solicitacoes', async (req, res) => {
     try {
-      const { pagamento_id, kofrinho_id, depositante_id, valor } = req.body
+      const { solicitacao_id, kofrinho_id, depositante_id, valor } = req.body
       await runAsync(
-        'INSERT INTO pagamentos (pagamento_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, 0)',
-        [pagamento_id, kofrinho_id, depositante_id, valor]
+        'INSERT INTO pagamentos (solicitacao_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, 0)',
+        [solicitacao_id, kofrinho_id, depositante_id, valor]
       )
       res.status(201).json({ message: 'Solicitação de teste criada' })
     } catch (err) {

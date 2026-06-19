@@ -31,7 +31,7 @@ export interface Depositante {
 
 export interface Solicitacao {
   id: number
-  pagamento_id: string
+  solicitacao_id: string
   kofrinho_id: number
   depositante_id: number
   depositante_nome: string

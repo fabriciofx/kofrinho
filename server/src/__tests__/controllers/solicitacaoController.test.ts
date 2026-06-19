@@ -16,7 +16,7 @@ async function inserirSolicitacao(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     db.run(
-      'INSERT INTO pagamentos (pagamento_id, kofrinho_id, depositante_id, valor, pago, pago_em) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO pagamentos (solicitacao_id, kofrinho_id, depositante_id, valor, pago, pago_em) VALUES (?, ?, ?, ?, ?, ?)',
       [solicitacaoId, kofrinhoId, depositanteId, valor, pago, pago_em],
       (err) => (err ? reject(err) : resolve())
     )
@@ -80,7 +80,7 @@ describe('Solicitação Controller', () => {
 
       const pag = await getAsync<{ pago: number }>(
         testDb,
-        'SELECT pago FROM pagamentos WHERE pagamento_id = ?',
+        'SELECT pago FROM pagamentos WHERE solicitacao_id = ?',
         [solicitacaoId]
       )
       expect(pag?.pago).toBe(1)
@@ -93,7 +93,7 @@ describe('Solicitação Controller', () => {
 
       const pag = await getAsync<{ pago_em: string }>(
         testDb,
-        'SELECT pago_em FROM pagamentos WHERE pagamento_id = ?',
+        'SELECT pago_em FROM pagamentos WHERE solicitacao_id = ?',
         [solicitacaoId]
       )
       expect(pag?.pago_em).toBeDefined()
@@ -106,7 +106,7 @@ describe('Solicitação Controller', () => {
     test('pago_em é null antes da confirmação', async () => {
       const pag = await getAsync<{ pago_em: string | null }>(
         testDb,
-        'SELECT pago_em FROM pagamentos WHERE pagamento_id = ?',
+        'SELECT pago_em FROM pagamentos WHERE solicitacao_id = ?',
         [solicitacaoId]
       )
       expect(pag?.pago_em).toBeNull()
@@ -129,7 +129,7 @@ describe('Solicitação Controller', () => {
       // Primeira confirmação
       await request(testServer.app).post(`/api/solicitacoes/${solicitacaoId}`)
       const { pago_em: primeiroPagoEm } = await getAsync<{ pago_em: string }>(
-        testDb, 'SELECT pago_em FROM pagamentos WHERE pagamento_id = ?', [solicitacaoId]
+        testDb, 'SELECT pago_em FROM pagamentos WHERE solicitacao_id = ?', [solicitacaoId]
       ) as { pago_em: string }
 
       // Segunda chamada (gateway repetindo o webhook)
@@ -137,7 +137,7 @@ describe('Solicitação Controller', () => {
       expect(res.status).toBe(200)
 
       const { pago_em: segundoPagoEm } = await getAsync<{ pago_em: string }>(
-        testDb, 'SELECT pago_em FROM pagamentos WHERE pagamento_id = ?', [solicitacaoId]
+        testDb, 'SELECT pago_em FROM pagamentos WHERE solicitacao_id = ?', [solicitacaoId]
       ) as { pago_em: string }
 
       // pago_em não deve ser sobrescrito
@@ -152,7 +152,7 @@ describe('Solicitação Controller', () => {
     test('solicitação permanece pago=0 antes da confirmação', async () => {
       const pag = await getAsync<{ pago: number }>(
         testDb,
-        'SELECT pago FROM pagamentos WHERE pagamento_id = ?',
+        'SELECT pago FROM pagamentos WHERE solicitacao_id = ?',
         [solicitacaoId]
       )
       expect(pag?.pago).toBe(0)
@@ -175,13 +175,13 @@ describe('Solicitação Controller', () => {
       expect(Array.isArray(res.body.solicitacoes)).toBe(true)
       expect(res.body.solicitacoes.length).toBeGreaterThan(0)
 
-      const pag = res.body.solicitacoes.find((p: any) => p.pagamento_id === uuid)
+      const pag = res.body.solicitacoes.find((p: any) => p.solicitacao_id === uuid)
       expect(pag).toBeDefined()
       expect(pag.depositante_nome).toBe('João Silva')
       expect(pag.valor).toBe(500)
       expect(pag.kofrinho_id).toBe(kofrinhoId)
       expect(pag.depositante_id).toBe(depositanteId)
-      expect(pag.pagamento_id).toBeDefined()
+      expect(pag.solicitacao_id).toBeDefined()
       expect(pag.pago).toBe(1)
       expect(pag.pago_em).toBeDefined()
       expect(pag.criado_em).toBeDefined()
@@ -231,12 +231,12 @@ describe('Solicitação Controller', () => {
         .set('Authorization', `Bearer ${validToken}`)
 
       const pags = res.body.solicitacoes.filter(
-        (p: any) => p.pagamento_id === uuid1 || p.pagamento_id === uuid2
+        (p: any) => p.solicitacao_id === uuid1 || p.solicitacao_id === uuid2
       )
       expect(pags.length).toBe(2)
       // uuid2 tem pago_em mais recente → deve aparecer primeiro
-      expect(pags[0].pagamento_id).toBe(uuid2)
-      expect(pags[1].pagamento_id).toBe(uuid1)
+      expect(pags[0].solicitacao_id).toBe(uuid2)
+      expect(pags[1].solicitacao_id).toBe(uuid1)
     })
 
     test('não retorna solicitações com pago=0', async () => {
@@ -249,7 +249,7 @@ describe('Solicitação Controller', () => {
 
       expect(res.status).toBe(200)
       const pags = res.body.solicitacoes
-      expect(pags.some((p: any) => p.pagamento_id === naoConfirmadoId)).toBe(false)
+      expect(pags.some((p: any) => p.solicitacao_id === naoConfirmadoId)).toBe(false)
     })
 
     test('retorna apenas solicitações com pago=1', async () => {
@@ -262,7 +262,7 @@ describe('Solicitação Controller', () => {
 
       expect(res.status).toBe(200)
       const pags = res.body.solicitacoes
-      expect(pags.some((p: any) => p.pagamento_id === confirmadoId)).toBe(true)
+      expect(pags.some((p: any) => p.solicitacao_id === confirmadoId)).toBe(true)
       expect(pags.every((p: any) => p.pago === 1)).toBe(true)
     })
 
@@ -274,7 +274,7 @@ describe('Solicitação Controller', () => {
       const antes = await request(testServer.app)
         .get(`/api/kofrinhos/${kofrinhoId}/solicitacoes`)
         .set('Authorization', `Bearer ${validToken}`)
-      expect(antes.body.solicitacoes.some((p: any) => p.pagamento_id === uuid)).toBe(false)
+      expect(antes.body.solicitacoes.some((p: any) => p.solicitacao_id === uuid)).toBe(false)
 
       // Confirma via webhook
       await request(testServer.app).post(`/api/solicitacoes/${uuid}`)
@@ -283,7 +283,7 @@ describe('Solicitação Controller', () => {
       const depois = await request(testServer.app)
         .get(`/api/kofrinhos/${kofrinhoId}/solicitacoes`)
         .set('Authorization', `Bearer ${validToken}`)
-      const pag = depois.body.solicitacoes.find((p: any) => p.pagamento_id === uuid)
+      const pag = depois.body.solicitacoes.find((p: any) => p.solicitacao_id === uuid)
       expect(pag).toBeDefined()
       expect(pag.pago_em).toBeDefined()
       expect(pag.pago_em).not.toBeNull()

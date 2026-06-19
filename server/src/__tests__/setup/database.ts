@@ -71,7 +71,7 @@ export function setupTestDb(): Promise<sqlite3.Database> {
 
         CREATE TABLE IF NOT EXISTS pagamentos (
           id             INTEGER PRIMARY KEY AUTOINCREMENT,
-          pagamento_id   TEXT UNIQUE NOT NULL,
+          solicitacao_id   TEXT UNIQUE NOT NULL,
           kofrinho_id    INTEGER NOT NULL,
           depositante_id INTEGER NOT NULL,
           valor          REAL NOT NULL,

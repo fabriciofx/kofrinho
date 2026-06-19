@@ -59,33 +59,33 @@ async function criarDepositante(page: any, kofrinhoId: number, nome: string, val
 // Cria pagamento pendente (pago=0) via rota de teste
 async function criarPagamentoPendente(
   page: any,
-  pagamentoId: string,
+  solicitacaoId: string,
   kofrinhoId: number,
   depositanteId: number,
   valor: number
 ) {
   const result = await page.evaluate(
-    async ({ server, pagamentoId, kofrinhoId, depositanteId, valor }: any) => {
+    async ({ server, solicitacaoId, kofrinhoId, depositanteId, valor }: any) => {
       const res = await fetch(`${server}/test/solicitacoes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pagamento_id: pagamentoId, kofrinho_id: kofrinhoId, depositante_id: depositanteId, valor }),
+        body: JSON.stringify({ solicitacao_id: solicitacaoId, kofrinho_id: kofrinhoId, depositante_id: depositanteId, valor }),
       })
       return { status: res.status }
     },
-    { server: SERVER, pagamentoId, kofrinhoId, depositanteId, valor }
+    { server: SERVER, solicitacaoId, kofrinhoId, depositanteId, valor }
   )
   expect(result.status).toBe(201)
 }
 
 // Confirma solicitação via webhook público (POST /api/solicitacoes/:solicitacaoId)
-async function confirmarPagamento(page: any, pagamentoId: string) {
+async function confirmarPagamento(page: any, solicitacaoId: string) {
   const result = await page.evaluate(
-    async ({ api, pagamentoId }: any) => {
-      const res = await fetch(`${api}/solicitacoes/${pagamentoId}`, { method: 'POST' })
+    async ({ api, solicitacaoId }: any) => {
+      const res = await fetch(`${api}/solicitacoes/${solicitacaoId}`, { method: 'POST' })
       return { status: res.status }
     },
-    { api: API, pagamentoId }
+    { api: API, solicitacaoId }
   )
   expect(result.status).toBe(200)
 }
@@ -127,8 +127,8 @@ test.describe('Solicitações', () => {
     const kofrinhoId = await getKofrinhoId(page, nome)
     const depositante = await criarDepositante(page, kofrinhoId, 'Depositante Não Confirmado', 500)
 
-    const pagamentoId = `e2e-nao-confirmado-${Date.now()}`
-    await criarPagamentoPendente(page, pagamentoId, kofrinhoId, depositante.id, 500)
+    const solicitacaoId = `e2e-nao-confirmado-${Date.now()}`
+    await criarPagamentoPendente(page, solicitacaoId, kofrinhoId, depositante.id, 500)
 
     // Navega para detalhes — fetchPagamentos filtra pago=0
     await page.locator('.kofrinho-card').filter({ hasText: nome })
@@ -149,9 +149,9 @@ test.describe('Solicitações', () => {
     const kofrinhoId = await getKofrinhoId(page, nome)
     const depositante = await criarDepositante(page, kofrinhoId, 'João Confirmado', 750)
 
-    const pagamentoId = `e2e-confirmado-${Date.now()}`
-    await criarPagamentoPendente(page, pagamentoId, kofrinhoId, depositante.id, 750)
-    await confirmarPagamento(page, pagamentoId)
+    const solicitacaoId = `e2e-confirmado-${Date.now()}`
+    await criarPagamentoPendente(page, solicitacaoId, kofrinhoId, depositante.id, 750)
+    await confirmarPagamento(page, solicitacaoId)
 
     // Navega para detalhes — fetchPagamentos retorna pago=1
     await page.locator('.kofrinho-card').filter({ hasText: nome })
@@ -174,9 +174,9 @@ test.describe('Solicitações', () => {
     const kofrinhoId = await getKofrinhoId(page, nome)
     const depositante = await criarDepositante(page, kofrinhoId, 'Maria', 100)
 
-    const pagamentoId = `e2e-colunas-${Date.now()}`
-    await criarPagamentoPendente(page, pagamentoId, kofrinhoId, depositante.id, 100)
-    await confirmarPagamento(page, pagamentoId)
+    const solicitacaoId = `e2e-colunas-${Date.now()}`
+    await criarPagamentoPendente(page, solicitacaoId, kofrinhoId, depositante.id, 100)
+    await confirmarPagamento(page, solicitacaoId)
 
     await page.locator('.kofrinho-card').filter({ hasText: nome })
       .locator('button:has-text("Ver Detalhes")').click()
@@ -198,8 +198,8 @@ test.describe('Solicitações', () => {
     const kofrinhoId = await getKofrinhoId(page, nome)
     const depositante = await criarDepositante(page, kofrinhoId, 'SSE Depositante', 300)
 
-    const pagamentoId = `e2e-sse-${Date.now()}`
-    await criarPagamentoPendente(page, pagamentoId, kofrinhoId, depositante.id, 300)
+    const solicitacaoId = `e2e-sse-${Date.now()}`
+    await criarPagamentoPendente(page, solicitacaoId, kofrinhoId, depositante.id, 300)
 
     // Navega para a página de detalhes (inicia conexão SSE)
     await page.locator('.kofrinho-card').filter({ hasText: nome })
@@ -211,7 +211,7 @@ test.describe('Solicitações', () => {
     await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).toBeVisible()
 
     // Confirma o pagamento via webhook (simula chamada da Confrapix)
-    await confirmarPagamento(page, pagamentoId)
+    await confirmarPagamento(page, solicitacaoId)
 
     // A tabela deve atualizar automaticamente via SSE sem reload da página
     await expect(page.locator('.solicitacoes-table')).toBeVisible({ timeout: 8000 })
@@ -228,11 +228,11 @@ test.describe('Solicitações', () => {
     const kofrinhoId = await getKofrinhoId(page, nome)
     const depositante = await criarDepositante(page, kofrinhoId, 'Carlos', 999)
 
-    const pagamentoId = `e2e-pago-em-${Date.now()}`
-    await criarPagamentoPendente(page, pagamentoId, kofrinhoId, depositante.id, 999)
+    const solicitacaoId = `e2e-pago-em-${Date.now()}`
+    await criarPagamentoPendente(page, solicitacaoId, kofrinhoId, depositante.id, 999)
 
     const dataAntes = new Date()
-    await confirmarPagamento(page, pagamentoId)
+    await confirmarPagamento(page, solicitacaoId)
     const dataDepois = new Date()
 
     await page.locator('.kofrinho-card').filter({ hasText: nome })
