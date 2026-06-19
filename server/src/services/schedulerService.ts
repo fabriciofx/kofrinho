@@ -104,7 +104,7 @@ export async function processarAgendamentos(
       const solicitacaoId = randomUUID()
 
       await runDbAsync(db,
-        'INSERT INTO pagamentos (solicitacao_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, 0)',
+        'INSERT INTO solicitacoes (solicitacao_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, 0)',
         [solicitacaoId, ag.kofrinho_id, ag.depositante_id, ag.valor]
       )
 

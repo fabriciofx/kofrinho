@@ -89,7 +89,7 @@ export async function initializeDatabase() {
     `)
 
     await runAsync(`
-      CREATE TABLE IF NOT EXISTS pagamentos (
+      CREATE TABLE IF NOT EXISTS solicitacoes (
         id             INTEGER PRIMARY KEY AUTOINCREMENT,
         solicitacao_id   TEXT UNIQUE NOT NULL,
         kofrinho_id    INTEGER NOT NULL,
@@ -104,14 +104,15 @@ export async function initializeDatabase() {
     `)
 
     await runAsync(`
-      CREATE INDEX IF NOT EXISTS idx_pagamentos_kofrinho_id
-      ON pagamentos(kofrinho_id)
+      CREATE INDEX IF NOT EXISTS idx_solicitacoes_kofrinho_id
+      ON solicitacoes(kofrinho_id)
     `)
 
-    // Migrations: adiciona/renomeia colunas em bancos existentes (ignorado se já aplicado)
-    try { await runAsync('ALTER TABLE pagamentos RENAME COLUMN pagamento_id TO solicitacao_id') } catch { /* já renomeado ou não existe */ }
-    try { await runAsync('ALTER TABLE pagamentos ADD COLUMN pago INTEGER DEFAULT 0') } catch { /* já existe */ }
-    try { await runAsync('ALTER TABLE pagamentos ADD COLUMN pago_em DATETIME') } catch { /* já existe */ }
+    // Migrations para bancos existentes (ignorado se já aplicado)
+    try { await runAsync('ALTER TABLE pagamentos RENAME TO solicitacoes') } catch { /* já renomeado ou não existe */ }
+    try { await runAsync('ALTER TABLE solicitacoes RENAME COLUMN pagamento_id TO solicitacao_id') } catch { /* já renomeado ou não existe */ }
+    try { await runAsync('ALTER TABLE solicitacoes ADD COLUMN pago INTEGER DEFAULT 0') } catch { /* já existe */ }
+    try { await runAsync('ALTER TABLE solicitacoes ADD COLUMN pago_em DATETIME') } catch { /* já existe */ }
 
     console.log('✅ Banco de dados inicializado com sucesso')
   } catch (err) {

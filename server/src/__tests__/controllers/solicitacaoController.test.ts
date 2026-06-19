@@ -16,7 +16,7 @@ async function inserirSolicitacao(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     db.run(
-      'INSERT INTO pagamentos (solicitacao_id, kofrinho_id, depositante_id, valor, pago, pago_em) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO solicitacoes (solicitacao_id, kofrinho_id, depositante_id, valor, pago, pago_em) VALUES (?, ?, ?, ?, ?, ?)',
       [solicitacaoId, kofrinhoId, depositanteId, valor, pago, pago_em],
       (err) => (err ? reject(err) : resolve())
     )
@@ -80,7 +80,7 @@ describe('Solicitação Controller', () => {
 
       const pag = await getAsync<{ pago: number }>(
         testDb,
-        'SELECT pago FROM pagamentos WHERE solicitacao_id = ?',
+        'SELECT pago FROM solicitacoes WHERE solicitacao_id = ?',
         [solicitacaoId]
       )
       expect(pag?.pago).toBe(1)
@@ -93,7 +93,7 @@ describe('Solicitação Controller', () => {
 
       const pag = await getAsync<{ pago_em: string }>(
         testDb,
-        'SELECT pago_em FROM pagamentos WHERE solicitacao_id = ?',
+        'SELECT pago_em FROM solicitacoes WHERE solicitacao_id = ?',
         [solicitacaoId]
       )
       expect(pag?.pago_em).toBeDefined()
@@ -106,7 +106,7 @@ describe('Solicitação Controller', () => {
     test('pago_em é null antes da confirmação', async () => {
       const pag = await getAsync<{ pago_em: string | null }>(
         testDb,
-        'SELECT pago_em FROM pagamentos WHERE solicitacao_id = ?',
+        'SELECT pago_em FROM solicitacoes WHERE solicitacao_id = ?',
         [solicitacaoId]
       )
       expect(pag?.pago_em).toBeNull()
@@ -129,7 +129,7 @@ describe('Solicitação Controller', () => {
       // Primeira confirmação
       await request(testServer.app).post(`/api/solicitacoes/${solicitacaoId}`)
       const { pago_em: primeiroPagoEm } = await getAsync<{ pago_em: string }>(
-        testDb, 'SELECT pago_em FROM pagamentos WHERE solicitacao_id = ?', [solicitacaoId]
+        testDb, 'SELECT pago_em FROM solicitacoes WHERE solicitacao_id = ?', [solicitacaoId]
       ) as { pago_em: string }
 
       // Segunda chamada (gateway repetindo o webhook)
@@ -137,7 +137,7 @@ describe('Solicitação Controller', () => {
       expect(res.status).toBe(200)
 
       const { pago_em: segundoPagoEm } = await getAsync<{ pago_em: string }>(
-        testDb, 'SELECT pago_em FROM pagamentos WHERE solicitacao_id = ?', [solicitacaoId]
+        testDb, 'SELECT pago_em FROM solicitacoes WHERE solicitacao_id = ?', [solicitacaoId]
       ) as { pago_em: string }
 
       // pago_em não deve ser sobrescrito
@@ -152,7 +152,7 @@ describe('Solicitação Controller', () => {
     test('solicitação permanece pago=0 antes da confirmação', async () => {
       const pag = await getAsync<{ pago: number }>(
         testDb,
-        'SELECT pago FROM pagamentos WHERE solicitacao_id = ?',
+        'SELECT pago FROM solicitacoes WHERE solicitacao_id = ?',
         [solicitacaoId]
       )
       expect(pag?.pago).toBe(0)

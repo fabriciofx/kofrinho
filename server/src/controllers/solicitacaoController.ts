@@ -81,7 +81,7 @@ export async function registrarSolicitacao(req: DbInjectedRequest, res: Response
     const { solicitacaoId } = req.params
 
     const solicitacao = await getDbAsync<{ id: number; pago: number; kofrinho_id: number }>(req,
-      'SELECT id, pago, kofrinho_id FROM pagamentos WHERE solicitacao_id = ?',
+      'SELECT id, pago, kofrinho_id FROM solicitacoes WHERE solicitacao_id = ?',
       [solicitacaoId]
     )
     if (!solicitacao) {
@@ -94,7 +94,7 @@ export async function registrarSolicitacao(req: DbInjectedRequest, res: Response
     }
 
     await runDbAsync(req,
-      'UPDATE pagamentos SET pago = 1, pago_em = CURRENT_TIMESTAMP WHERE solicitacao_id = ?',
+      'UPDATE solicitacoes SET pago = 1, pago_em = CURRENT_TIMESTAMP WHERE solicitacao_id = ?',
       [solicitacaoId]
     )
 
@@ -112,7 +112,7 @@ export async function registrarSolicitacao(req: DbInjectedRequest, res: Response
       `SELECT p.pago_em, p.valor,
               d.nome AS depositante_nome, d.email AS depositante_email,
               k.nome AS kofrinho_nome, k.descricao AS kofrinho_descricao
-       FROM pagamentos p
+       FROM solicitacoes p
        JOIN depositantes d ON p.depositante_id = d.id
        JOIN kofrinhos k ON p.kofrinho_id = k.id
        WHERE p.solicitacao_id = ?`,
@@ -188,7 +188,7 @@ export async function listSolicitacoes(req: DbInjectedAuthRequest, res: Response
     const solicitacoes = await allDbAsync<Solicitacao>(req,
       `SELECT p.id, p.solicitacao_id, p.kofrinho_id, p.depositante_id, p.valor, p.pago, p.pago_em, p.criado_em,
               d.nome AS depositante_nome
-       FROM pagamentos p
+       FROM solicitacoes p
        JOIN depositantes d ON p.depositante_id = d.id
        WHERE p.kofrinho_id = ? AND p.pago = 1
        ORDER BY p.pago_em DESC`,

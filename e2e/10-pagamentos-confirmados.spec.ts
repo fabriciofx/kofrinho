@@ -117,7 +117,7 @@ test.describe('Solicitações', () => {
     await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).toBeVisible()
   })
 
-  test('não exibe pagamentos com pago=false no container Solicitações', async ({ authenticatedPage: page }) => {
+  test('não exibe solicitações com pago=false no container Solicitações', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
 
     const nome = `Kofrinho ${Date.now()}`
