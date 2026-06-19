@@ -2,7 +2,7 @@ import { Request, Response } from 'express'
 import { getAsync, allAsync, runAsync } from '../database/db.js'
 import { AuthRequest } from '../middleware/auth.js'
 import { Solicitacao } from '../types/index.js'
-import { sendPagamentoConfirmadoEmail } from '../services/emailService.js'
+import { sendSolicitacaoConfirmadaEmail } from '../services/emailService.js'
 
 // ─── SSE: registro de clientes por kofrinho ───────────────────────────────────
 const sseClients = new Map<number, Set<Response>>()
@@ -74,7 +74,7 @@ function runDbAsync(req: any, sql: string, params: any[]): Promise<void> {
   return runAsync(sql, params)
 }
 
-// Webhook chamado pela Confrapix quando o pagamento é confirmado
+// Webhook chamado pela Confrapix quando a solicitação é confirmada
 // POST /api/solicitacoes/:solicitacaoId
 export async function registrarSolicitacao(req: DbInjectedRequest, res: Response) {
   try {
@@ -120,7 +120,7 @@ export async function registrarSolicitacao(req: DbInjectedRequest, res: Response
     )
 
     if (dadosEmail?.depositante_email) {
-      sendPagamentoConfirmadoEmail(
+      sendSolicitacaoConfirmadaEmail(
         dadosEmail.depositante_email,
         dadosEmail.depositante_nome,
         dadosEmail.kofrinho_nome,

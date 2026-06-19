@@ -33,7 +33,7 @@ function KofrinhoDetails() {
     }
   }, [id, selectKofrinho, fetchDepositantes, fetchSolicitacoes])
 
-  // SSE: atualiza "Solicitações" em tempo real quando um pagamento é confirmado
+  // SSE: atualiza "Solicitações" em tempo real quando uma solicitação é confirmada
   useEffect(() => {
     if (!id) return
     const kofrinhoId = parseInt(id)

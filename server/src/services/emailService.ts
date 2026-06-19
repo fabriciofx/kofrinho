@@ -158,9 +158,9 @@ export async function sendAgendamentoEmail(
   console.log(`📧 Resend: e-mail enviado para ${emailDepositante}`)
 }
 
-// ── Confirmação de pagamento para o depositante ───────────────────────────────
+// ── Confirmação de solicitação para o depositante ─────────────────────────────
 
-export async function sendPagamentoConfirmadoEmail(
+export async function sendSolicitacaoConfirmadaEmail(
   emailDepositante: string,
   nomeDepositante: string,
   nomeKofrinho: string,
@@ -213,5 +213,5 @@ export async function sendPagamentoConfirmadoEmail(
     throw new Error(`Resend: ${error.message}`)
   }
 
-  console.log(`📧 Confirmação de pagamento enviada para ${emailDepositante}`)
+  console.log(`📧 Confirmação de solicitação enviada para ${emailDepositante}`)
 }

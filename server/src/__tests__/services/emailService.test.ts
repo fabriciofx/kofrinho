@@ -1,9 +1,9 @@
 import { jest } from '@jest/globals'
-import { sendPagamentoConfirmadoEmail } from '../../services/emailService.js'
+import { sendSolicitacaoConfirmadaEmail } from '../../services/emailService.js'
 
 // NODE_ENV=test é definido automaticamente pelo Jest
 
-describe('sendPagamentoConfirmadoEmail', () => {
+describe('sendSolicitacaoConfirmadaEmail', () => {
   const args = {
     email: 'joao@teste.com',
     nome: 'João Silva',
@@ -16,7 +16,7 @@ describe('sendPagamentoConfirmadoEmail', () => {
   test('retorna sem enviar em NODE_ENV=test', async () => {
     // NODE_ENV=test → a função deve retornar sem lançar e sem chamar Resend
     await expect(
-      sendPagamentoConfirmadoEmail(
+      sendSolicitacaoConfirmadaEmail(
         args.email, args.nome, args.kofrinho, args.descricao, args.valor, args.pago_em
       )
     ).resolves.toBeUndefined()
@@ -25,7 +25,7 @@ describe('sendPagamentoConfirmadoEmail', () => {
   test('não lança erro quando depositante não tem e-mail (chamador não invoca a função)', () => {
     // A lógica de "skip se sem email" é responsabilidade do controller;
     // a função em si não precisa tratar esse caso
-    expect(typeof sendPagamentoConfirmadoEmail).toBe('function')
+    expect(typeof sendSolicitacaoConfirmadaEmail).toBe('function')
   })
 })
 
