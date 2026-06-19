@@ -3,6 +3,7 @@ import sqlite3 from 'sqlite3'
 import { allAsync, runAsync } from '../database/db.js'
 import { sendAgendamentoEmail } from './emailService.js'
 import { chamarConfrapix, construirPayloadConfrapix, type ConfrapixFn } from './confrapixService.js'
+import { notificarKofrinho } from '../controllers/solicitacaoController.js'
 
 export type Recorrencia = 'diario' | 'semanal' | 'mensal' | 'anual'
 
@@ -107,6 +108,9 @@ export async function processarAgendamentos(
         'INSERT INTO solicitacoes (solicitacao_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, 0)',
         [solicitacaoId, ag.kofrinho_id, ag.depositante_id, ag.valor]
       )
+
+      // Notifica clientes SSE para que a nova solicitação ("A Pagar") apareça ao vivo
+      notificarKofrinho(ag.kofrinho_id, 'solicitacao_criada')
 
       const payload = construirPayloadConfrapix(
         ag.valor,

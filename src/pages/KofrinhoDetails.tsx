@@ -56,7 +56,7 @@ function KofrinhoDetails() {
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
-          if (decoder.decode(value).includes('solicitacao_confirmada')) {
+          if (decoder.decode(value).includes('solicitacao_')) {
             fetchSolicitacoes(kofrinhoId)
           }
         }
@@ -362,6 +362,7 @@ function KofrinhoDetails() {
                 <th>Depositante</th>
                 <th>Valor</th>
                 <th>Data</th>
+                <th>Situação</th>
               </tr>
             </thead>
             <tbody>
@@ -369,7 +370,14 @@ function KofrinhoDetails() {
                 <tr key={p.id}>
                   <td>{p.depositante_nome}</td>
                   <td>{p.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                  <td>{p.pago_em ? new Date(p.pago_em).toLocaleString('pt-BR') : '—'}</td>
+                  <td>{new Date(p.criado_em).toLocaleString('pt-BR')}</td>
+                  <td>
+                    <span
+                      className={`situacao-badge ${p.pago === 1 ? 'situacao-paga' : 'situacao-a-pagar'}`}
+                    >
+                      {p.pago === 1 ? 'Paga' : 'A Pagar'}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>

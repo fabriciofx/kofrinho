@@ -32,24 +32,26 @@ async function getKofrinhoId(page: any, nome: string): Promise<number> {
   return id as number
 }
 
-// Cria depositante via fetch no contexto do browser
+// Cria depositante via rota de teste (SEM agendamento), para que o scheduler
+// não gere solicitações automáticas e as asserções permaneçam determinísticas.
 async function criarDepositante(page: any, kofrinhoId: number, nome: string, valor: number) {
   const result = await page.evaluate(
-    async ({ api, kofrinhoId, nome, valor }: any) => {
-      const stored = localStorage.getItem('authTokens')
-      const tokens = stored ? JSON.parse(stored) : null
-      const res = await fetch(`${api}/kofrinhos/${kofrinhoId}/depositantes`, {
+    async ({ server, kofrinhoId, nome, valor }: any) => {
+      const res = await fetch(`${server}/test/depositantes`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${tokens?.token ?? ''}`,
-        },
-        body: JSON.stringify({ nome, valor, recorrencia: 'mensal', email: `${nome.toLowerCase().replace(/\s+/g, '.')}@teste.com` }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kofrinho_id: kofrinhoId,
+          nome,
+          valor,
+          recorrencia: 'mensal',
+          email: `${nome.toLowerCase().replace(/\s+/g, '.')}@teste.com`,
+        }),
       })
       const body = await res.json()
       return { status: res.status, body }
     },
-    { api: API, kofrinhoId, nome, valor }
+    { server: SERVER, kofrinhoId, nome, valor }
   )
   expect(result.status).toBe(201)
   expect(result.body.depositante).toBeDefined()
@@ -117,7 +119,7 @@ test.describe('Solicitações', () => {
     await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).toBeVisible()
   })
 
-  test('não exibe solicitações com pago=false no container Solicitações', async ({ authenticatedPage: page }) => {
+  test('exibe solicitação a pagar (pago=0) com situação "A Pagar"', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
 
     const nome = `Kofrinho ${Date.now()}`
@@ -125,19 +127,21 @@ test.describe('Solicitações', () => {
 
     // Obtém ID via API sem navegar para a página de detalhes
     const kofrinhoId = await getKofrinhoId(page, nome)
-    const depositante = await criarDepositante(page, kofrinhoId, 'Depositante Não Confirmado', 500)
+    const depositante = await criarDepositante(page, kofrinhoId, 'Depositante Pendente', 500)
 
-    const solicitacaoId = `e2e-nao-confirmado-${Date.now()}`
+    const solicitacaoId = `e2e-a-pagar-${Date.now()}`
     await criarSolicitacaoPendente(page, solicitacaoId, kofrinhoId, depositante.id, 500)
 
-    // Navega para detalhes — fetchSolicitacoes filtra pago=0
+    // Navega para detalhes — a solicitação enviada aparece mesmo sem pagamento
     await page.locator('.kofrinho-card').filter({ hasText: nome })
       .locator('button:has-text("Ver Detalhes")').click()
     await page.waitForURL(/\/kofrinho\/\d+/, { timeout: 8000 })
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).toBeVisible()
-    await expect(page.locator('.solicitacoes-table')).not.toBeVisible()
+    const linha = page.locator('.solicitacoes-table tbody tr').filter({ hasText: 'Depositante Pendente' })
+    await expect(linha).toBeVisible({ timeout: 8000 })
+    await expect(linha.locator('.situacao-badge')).toHaveText('A Pagar')
+    await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).not.toBeVisible()
   })
 
   test('exibe solicitação confirmada após receber webhook', async ({ authenticatedPage: page }) => {
@@ -160,12 +164,14 @@ test.describe('Solicitações', () => {
     await page.waitForLoadState('networkidle')
 
     await expect(page.locator('.solicitacoes-table')).toBeVisible({ timeout: 8000 })
-    await expect(page.locator('.solicitacoes-table tbody').locator('text=João Confirmado')).toBeVisible()
-    await expect(page.locator('.solicitacoes-table tbody').locator('text=R$ 750,00')).toBeVisible()
+    const linha = page.locator('.solicitacoes-table tbody tr').filter({ hasText: 'João Confirmado' })
+    await expect(linha).toBeVisible()
+    await expect(linha.locator('text=R$ 750,00')).toBeVisible()
+    await expect(linha.locator('.situacao-badge')).toHaveText('Paga')
     await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).not.toBeVisible()
   })
 
-  test('tabela tem colunas Depositante, Valor e Data', async ({ authenticatedPage: page }) => {
+  test('tabela tem colunas Depositante, Valor, Data e Situação', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
 
     const nome = `Kofrinho ${Date.now()}`
@@ -176,7 +182,6 @@ test.describe('Solicitações', () => {
 
     const solicitacaoId = `e2e-colunas-${Date.now()}`
     await criarSolicitacaoPendente(page, solicitacaoId, kofrinhoId, depositante.id, 100)
-    await confirmarSolicitacao(page, solicitacaoId)
 
     await page.locator('.kofrinho-card').filter({ hasText: nome })
       .locator('button:has-text("Ver Detalhes")').click()
@@ -187,9 +192,10 @@ test.describe('Solicitações', () => {
     await expect(thead.locator('text=Depositante')).toBeVisible()
     await expect(thead.locator('text=Valor')).toBeVisible()
     await expect(thead.locator('text=Data')).toBeVisible()
+    await expect(thead.locator('text=Situação')).toBeVisible()
   })
 
-  test('atualiza tabela automaticamente via SSE quando solicitação é confirmada', async ({ authenticatedPage: page }) => {
+  test('situação muda de "A Pagar" para "Paga" ao vivo (via SSE) após chamada à API', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
 
     const nome = `Kofrinho ${Date.now()}`
@@ -207,19 +213,19 @@ test.describe('Solicitações', () => {
     await page.waitForURL(/\/kofrinho\/\d+/, { timeout: 8000 })
     await page.waitForLoadState('networkidle')
 
-    // Confirma que ainda não há solicitações confirmadas
-    await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).toBeVisible()
+    // A solicitação já aparece como "A Pagar" antes do pagamento
+    const linha = page.locator('.solicitacoes-table tbody tr').filter({ hasText: 'SSE Depositante' })
+    await expect(linha).toBeVisible({ timeout: 8000 })
+    await expect(linha.locator('.situacao-badge')).toHaveText('A Pagar')
 
-    // Confirma a solicitação via webhook (simula chamada da Confrapix)
+    // Confirma o pagamento via webhook (simula chamada da Confrapix)
     await confirmarSolicitacao(page, solicitacaoId)
 
-    // A tabela deve atualizar automaticamente via SSE sem reload da página
-    await expect(page.locator('.solicitacoes-table')).toBeVisible({ timeout: 8000 })
-    await expect(page.locator('.solicitacoes-table tbody').locator('text=SSE Depositante')).toBeVisible()
-    await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).not.toBeVisible()
+    // A situação deve mudar para "Paga" automaticamente, sem reload da página
+    await expect(linha.locator('.situacao-badge')).toHaveText('Paga', { timeout: 8000 })
   })
 
-  test('exibe data e hora da solicitação (pago_em) na linha da tabela', async ({ authenticatedPage: page }) => {
+  test('exibe a data e hora de envio (criado_em) na linha da tabela', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
 
     const nome = `Kofrinho ${Date.now()}`
@@ -228,12 +234,9 @@ test.describe('Solicitações', () => {
     const kofrinhoId = await getKofrinhoId(page, nome)
     const depositante = await criarDepositante(page, kofrinhoId, 'Carlos', 999)
 
-    const solicitacaoId = `e2e-pago-em-${Date.now()}`
-    await criarSolicitacaoPendente(page, solicitacaoId, kofrinhoId, depositante.id, 999)
-
+    const solicitacaoId = `e2e-criado-em-${Date.now()}`
     const dataAntes = new Date()
-    await confirmarSolicitacao(page, solicitacaoId)
-    const dataDepois = new Date()
+    await criarSolicitacaoPendente(page, solicitacaoId, kofrinhoId, depositante.id, 999)
 
     await page.locator('.kofrinho-card').filter({ hasText: nome })
       .locator('button:has-text("Ver Detalhes")').click()
@@ -242,13 +245,13 @@ test.describe('Solicitações', () => {
 
     await expect(page.locator('.solicitacoes-table')).toBeVisible({ timeout: 8000 })
 
-    // Verifica que a célula de data exibe um valor formatado (não "—")
+    // A coluna Data (índice 2) exibe a data de envio mesmo com a solicitação "A Pagar"
     const celulaData = page.locator('.solicitacoes-table tbody tr').first().locator('td').nth(2)
     const textoData = await celulaData.innerText()
     expect(textoData).not.toBe('—')
     expect(textoData.length).toBeGreaterThan(5)
 
-    // Verifica que a data exibida é razoável (ano atual ou próximo)
+    // Verifica que a data exibida é razoável (ano atual)
     const anoAtual = dataAntes.getFullYear()
     expect(textoData).toContain(String(anoAtual))
   })

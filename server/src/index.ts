@@ -9,7 +9,7 @@ import authRoutes from './routes/authRoutes.js'
 import kofrinhoRoutes from './routes/kofrinhoRoutes.js'
 import avatarRoutes from './routes/avatarRoutes.js'
 import { registrarSolicitacao } from './controllers/solicitacaoController.js'
-import { runAsync } from './database/db.js'
+import { runAsync, runAsyncWithLastId } from './database/db.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -42,7 +42,7 @@ app.get('/api/health', (req, res) => {
 // Webhook Confrapix: confirma solicitação (sem auth)
 app.post('/api/solicitacoes/:solicitacaoId', registrarSolicitacao)
 
-// Rota auxiliar para criar solicitações pendentes em testes E2E (não disponível em produção)
+// Rotas auxiliares para testes E2E (não disponíveis em produção)
 if (process.env.TEST_ROUTES === 'true') {
   app.post('/test/solicitacoes', async (req, res) => {
     try {
@@ -54,6 +54,21 @@ if (process.env.TEST_ROUTES === 'true') {
       res.status(201).json({ message: 'Solicitação de teste criada' })
     } catch (err) {
       res.status(500).json({ erro: 'Erro ao criar solicitação de teste' })
+    }
+  })
+
+  // Cria um depositante SEM agendamento, para que o scheduler não gere
+  // solicitações automáticas e os testes permaneçam determinísticos.
+  app.post('/test/depositantes', async (req, res) => {
+    try {
+      const { kofrinho_id, nome, valor, recorrencia, email } = req.body
+      const id = await runAsyncWithLastId(
+        'INSERT INTO depositantes (kofrinho_id, nome, valor, recorrencia, email) VALUES (?, ?, ?, ?, ?)',
+        [kofrinho_id, nome, valor, recorrencia ?? 'mensal', email ?? null]
+      )
+      res.status(201).json({ depositante: { id, kofrinho_id, nome, valor } })
+    } catch (err) {
+      res.status(500).json({ erro: 'Erro ao criar depositante de teste' })
     }
   })
 }

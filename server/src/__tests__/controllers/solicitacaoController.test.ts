@@ -12,12 +12,20 @@ async function inserirSolicitacao(
   depositanteId: number,
   valor: number,
   pago = 0,
-  pago_em: string | null = null
+  pago_em: string | null = null,
+  criado_em: string | null = null
 ): Promise<void> {
+  const cols = ['solicitacao_id', 'kofrinho_id', 'depositante_id', 'valor', 'pago', 'pago_em']
+  const vals: any[] = [solicitacaoId, kofrinhoId, depositanteId, valor, pago, pago_em]
+  if (criado_em !== null) {
+    cols.push('criado_em')
+    vals.push(criado_em)
+  }
+  const placeholders = cols.map(() => '?').join(', ')
   return new Promise((resolve, reject) => {
     db.run(
-      'INSERT INTO solicitacoes (solicitacao_id, kofrinho_id, depositante_id, valor, pago, pago_em) VALUES (?, ?, ?, ?, ?, ?)',
-      [solicitacaoId, kofrinhoId, depositanteId, valor, pago, pago_em],
+      `INSERT INTO solicitacoes (${cols.join(', ')}) VALUES (${placeholders})`,
+      vals,
       (err) => (err ? reject(err) : resolve())
     )
   })
@@ -219,12 +227,12 @@ describe('Solicitação Controller', () => {
       expect(res.status).toBe(404)
     })
 
-    test('solicitações aparecem em ordem decrescente de pago_em', async () => {
+    test('solicitações aparecem em ordem decrescente de criado_em (mais recentes primeiro)', async () => {
       const uuid1 = randomUUID()
       const uuid2 = randomUUID()
-      // pago_em explícito para garantir ordem independente da resolução de segundos do SQLite
-      await inserirSolicitacao(testDb, uuid1, kofrinhoId, depositanteId, 500, 1, '2026-01-01 09:00:00')
-      await inserirSolicitacao(testDb, uuid2, kofrinhoId, depositanteId, 500, 1, '2026-01-01 10:00:00')
+      // criado_em explícito para garantir ordem independente da resolução de segundos do SQLite
+      await inserirSolicitacao(testDb, uuid1, kofrinhoId, depositanteId, 500, 0, null, '2026-01-01 09:00:00')
+      await inserirSolicitacao(testDb, uuid2, kofrinhoId, depositanteId, 500, 0, null, '2026-01-01 10:00:00')
 
       const res = await request(testServer.app)
         .get(`/api/kofrinhos/${kofrinhoId}/solicitacoes`)
@@ -234,14 +242,31 @@ describe('Solicitação Controller', () => {
         (p: any) => p.solicitacao_id === uuid1 || p.solicitacao_id === uuid2
       )
       expect(pags.length).toBe(2)
-      // uuid2 tem pago_em mais recente → deve aparecer primeiro
+      // uuid2 foi enviada mais recentemente → deve aparecer primeiro
       expect(pags[0].solicitacao_id).toBe(uuid2)
       expect(pags[1].solicitacao_id).toBe(uuid1)
     })
 
-    test('não retorna solicitações com pago=0', async () => {
-      const naoConfirmadoId = randomUUID()
-      await inserirSolicitacao(testDb, naoConfirmadoId, kofrinhoId, depositanteId, 200, 0)
+    test('retorna solicitações a pagar (pago=0) com situação implícita "A Pagar"', async () => {
+      const aPagarId = randomUUID()
+      await inserirSolicitacao(testDb, aPagarId, kofrinhoId, depositanteId, 200, 0)
+
+      const res = await request(testServer.app)
+        .get(`/api/kofrinhos/${kofrinhoId}/solicitacoes`)
+        .set('Authorization', `Bearer ${validToken}`)
+
+      expect(res.status).toBe(200)
+      const pag = res.body.solicitacoes.find((p: any) => p.solicitacao_id === aPagarId)
+      expect(pag).toBeDefined()
+      expect(pag.pago).toBe(0) // pago=0 → frontend exibe "A Pagar"
+      expect(pag.pago_em).toBeNull()
+    })
+
+    test('retorna tanto solicitações a pagar (pago=0) quanto pagas (pago=1)', async () => {
+      const aPagarId = randomUUID()
+      const pagaId = randomUUID()
+      await inserirSolicitacao(testDb, aPagarId, kofrinhoId, depositanteId, 300, 0)
+      await inserirSolicitacao(testDb, pagaId, kofrinhoId, depositanteId, 300, 1)
 
       const res = await request(testServer.app)
         .get(`/api/kofrinhos/${kofrinhoId}/solicitacoes`)
@@ -249,44 +274,34 @@ describe('Solicitação Controller', () => {
 
       expect(res.status).toBe(200)
       const pags = res.body.solicitacoes
-      expect(pags.some((p: any) => p.solicitacao_id === naoConfirmadoId)).toBe(false)
+      expect(pags.some((p: any) => p.solicitacao_id === aPagarId && p.pago === 0)).toBe(true)
+      expect(pags.some((p: any) => p.solicitacao_id === pagaId && p.pago === 1)).toBe(true)
     })
 
-    test('retorna apenas solicitações com pago=1', async () => {
-      const confirmadoId = randomUUID()
-      await inserirSolicitacao(testDb, confirmadoId, kofrinhoId, depositanteId, 300, 1)
-
-      const res = await request(testServer.app)
-        .get(`/api/kofrinhos/${kofrinhoId}/solicitacoes`)
-        .set('Authorization', `Bearer ${validToken}`)
-
-      expect(res.status).toBe(200)
-      const pags = res.body.solicitacoes
-      expect(pags.some((p: any) => p.solicitacao_id === confirmadoId)).toBe(true)
-      expect(pags.every((p: any) => p.pago === 1)).toBe(true)
-    })
-
-    test('solicitação passa a aparecer na lista após confirmação via webhook', async () => {
+    test('situação muda de "A Pagar" (pago=0) para "Paga" (pago=1) após webhook', async () => {
       const uuid = randomUUID()
       await inserirSolicitacao(testDb, uuid, kofrinhoId, depositanteId, 400, 0)
 
-      // Antes da confirmação: não aparece
+      // Antes da confirmação: aparece como "A Pagar" (pago=0, sem pago_em)
       const antes = await request(testServer.app)
         .get(`/api/kofrinhos/${kofrinhoId}/solicitacoes`)
         .set('Authorization', `Bearer ${validToken}`)
-      expect(antes.body.solicitacoes.some((p: any) => p.solicitacao_id === uuid)).toBe(false)
+      const pagAntes = antes.body.solicitacoes.find((p: any) => p.solicitacao_id === uuid)
+      expect(pagAntes).toBeDefined()
+      expect(pagAntes.pago).toBe(0)
+      expect(pagAntes.pago_em).toBeNull()
 
-      // Confirma via webhook
+      // Confirma via webhook (chamada da Confrapix)
       await request(testServer.app).post(`/api/solicitacoes/${uuid}`)
 
-      // Após a confirmação: aparece com pago_em preenchido
+      // Após a confirmação: situação "Paga" (pago=1, com pago_em preenchido)
       const depois = await request(testServer.app)
         .get(`/api/kofrinhos/${kofrinhoId}/solicitacoes`)
         .set('Authorization', `Bearer ${validToken}`)
-      const pag = depois.body.solicitacoes.find((p: any) => p.solicitacao_id === uuid)
-      expect(pag).toBeDefined()
-      expect(pag.pago_em).toBeDefined()
-      expect(pag.pago_em).not.toBeNull()
+      const pagDepois = depois.body.solicitacoes.find((p: any) => p.solicitacao_id === uuid)
+      expect(pagDepois).toBeDefined()
+      expect(pagDepois.pago).toBe(1)
+      expect(pagDepois.pago_em).not.toBeNull()
     })
   })
 })

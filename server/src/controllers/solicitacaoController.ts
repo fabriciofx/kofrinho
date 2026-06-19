@@ -19,11 +19,13 @@ function removerSseClient(kofrinhoId: number, res: Response): void {
   if (set.size === 0) sseClients.delete(kofrinhoId)
 }
 
-function notificarKofrinho(kofrinhoId: number): void {
+// Notifica os clientes SSE de um kofrinho para que recarreguem as solicitações.
+// `tipo` é informativo; o frontend re-busca a lista em qualquer evento de solicitação.
+export function notificarKofrinho(kofrinhoId: number, tipo = 'solicitacao_atualizada'): void {
   const clients = sseClients.get(kofrinhoId)
   if (!clients) return
   for (const res of clients) {
-    res.write(`data: ${JSON.stringify({ tipo: 'solicitacao_confirmada' })}\n\n`)
+    res.write(`data: ${JSON.stringify({ tipo })}\n\n`)
   }
 }
 
@@ -98,7 +100,7 @@ export async function registrarSolicitacao(req: DbInjectedRequest, res: Response
       [solicitacaoId]
     )
 
-    notificarKofrinho(solicitacao.kofrinho_id)
+    notificarKofrinho(solicitacao.kofrinho_id, 'solicitacao_confirmada')
 
     // Busca dados para o e-mail de confirmação e dispara de forma assíncrona
     const dadosEmail = await getDbAsync<{
@@ -185,13 +187,15 @@ export async function listSolicitacoes(req: DbInjectedAuthRequest, res: Response
       return res.status(404).json({ erro: 'Kofrinho não encontrado' })
     }
 
+    // Retorna todas as solicitações (pagas e a pagar) ordenadas pela data de envio.
+    // A situação é derivada de `pago`: 0 → "A Pagar", 1 → "Paga".
     const solicitacoes = await allDbAsync<Solicitacao>(req,
       `SELECT p.id, p.solicitacao_id, p.kofrinho_id, p.depositante_id, p.valor, p.pago, p.pago_em, p.criado_em,
               d.nome AS depositante_nome
        FROM solicitacoes p
        JOIN depositantes d ON p.depositante_id = d.id
-       WHERE p.kofrinho_id = ? AND p.pago = 1
-       ORDER BY p.pago_em DESC`,
+       WHERE p.kofrinho_id = ?
+       ORDER BY p.criado_em DESC`,
       [kofrinhoId]
     )
 
