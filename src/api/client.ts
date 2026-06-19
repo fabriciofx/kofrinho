@@ -34,7 +34,7 @@ export interface KofrinhoResponse {
   kofrinhos?: Kofrinho[]
 }
 
-export interface Pagamento {
+export interface Solicitacao {
   id: number
   pagamento_id: string
   kofrinho_id: number
@@ -362,15 +362,15 @@ export async function listDepositantes(kofrinhoId: number): Promise<Depositante[
   return data.depositantes
 }
 
-export async function listPagamentos(kofrinhoId: number): Promise<Pagamento[]> {
-  const response = await apiFetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/pagamentos`, {
+export async function listSolicitacoes(kofrinhoId: number): Promise<Solicitacao[]> {
+  const response = await apiFetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/solicitacoes`, {
     headers: {
       'Content-Type': 'application/json',
       ...getAuthHeaders()
     }
   })
-  const data = await handleResponse<{ pagamentos: Pagamento[] }>(response)
-  return data.pagamentos
+  const data = await handleResponse<{ solicitacoes: Solicitacao[] }>(response)
+  return data.solicitacoes
 }
 
 // Avatar endpoints

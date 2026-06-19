@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import { getAsync, allAsync, runAsync } from '../database/db.js'
 import { AuthRequest } from '../middleware/auth.js'
-import { Pagamento } from '../types/index.js'
+import { Solicitacao } from '../types/index.js'
 import { sendPagamentoConfirmadoEmail } from '../services/emailService.js'
 
 // ─── SSE: registro de clientes por kofrinho ───────────────────────────────────
@@ -23,7 +23,7 @@ function notificarKofrinho(kofrinhoId: number): void {
   const clients = sseClients.get(kofrinhoId)
   if (!clients) return
   for (const res of clients) {
-    res.write(`data: ${JSON.stringify({ tipo: 'pagamento_confirmado' })}\n\n`)
+    res.write(`data: ${JSON.stringify({ tipo: 'solicitacao_confirmada' })}\n\n`)
   }
 }
 
@@ -75,30 +75,30 @@ function runDbAsync(req: any, sql: string, params: any[]): Promise<void> {
 }
 
 // Webhook chamado pela Confrapix quando o pagamento é confirmado
-// POST /api/pagamentos/:pagamentoId
-export async function registrarPagamento(req: DbInjectedRequest, res: Response) {
+// POST /api/solicitacoes/:solicitacaoId
+export async function registrarSolicitacao(req: DbInjectedRequest, res: Response) {
   try {
-    const { pagamentoId } = req.params
+    const { solicitacaoId } = req.params
 
-    const pagamento = await getDbAsync<{ id: number; pago: number; kofrinho_id: number }>(req,
+    const solicitacao = await getDbAsync<{ id: number; pago: number; kofrinho_id: number }>(req,
       'SELECT id, pago, kofrinho_id FROM pagamentos WHERE pagamento_id = ?',
-      [pagamentoId]
+      [solicitacaoId]
     )
-    if (!pagamento) {
-      return res.status(404).json({ erro: 'Pagamento não encontrado' })
+    if (!solicitacao) {
+      return res.status(404).json({ erro: 'Solicitação não encontrada' })
     }
 
     // Idempotência: chamadas repetidas do webhook não disparam novo e-mail
-    if (pagamento.pago === 1) {
-      return res.status(200).json({ message: 'Pagamento já confirmado' })
+    if (solicitacao.pago === 1) {
+      return res.status(200).json({ message: 'Solicitação já confirmada' })
     }
 
     await runDbAsync(req,
       'UPDATE pagamentos SET pago = 1, pago_em = CURRENT_TIMESTAMP WHERE pagamento_id = ?',
-      [pagamentoId]
+      [solicitacaoId]
     )
 
-    notificarKofrinho(pagamento.kofrinho_id)
+    notificarKofrinho(solicitacao.kofrinho_id)
 
     // Busca dados para o e-mail de confirmação e dispara de forma assíncrona
     const dadosEmail = await getDbAsync<{
@@ -116,7 +116,7 @@ export async function registrarPagamento(req: DbInjectedRequest, res: Response) 
        JOIN depositantes d ON p.depositante_id = d.id
        JOIN kofrinhos k ON p.kofrinho_id = k.id
        WHERE p.pagamento_id = ?`,
-      [pagamentoId]
+      [solicitacaoId]
     )
 
     if (dadosEmail?.depositante_email) {
@@ -130,17 +130,17 @@ export async function registrarPagamento(req: DbInjectedRequest, res: Response) 
       ).catch(err => console.error('❌ Erro ao enviar e-mail de confirmação:', err))
     }
 
-    console.log(`✅ Pagamento confirmado: ${pagamentoId}`)
-    return res.status(200).json({ message: 'Pagamento confirmado com sucesso' })
+    console.log(`✅ Solicitação confirmada: ${solicitacaoId}`)
+    return res.status(200).json({ message: 'Solicitação confirmada com sucesso' })
   } catch (err) {
-    console.error('❌ Erro ao confirmar pagamento:', err)
+    console.error('❌ Erro ao confirmar solicitação:', err)
     res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }
 
-// SSE: stream de eventos de pagamento para um kofrinho (requer auth)
-// GET /api/kofrinhos/:id/pagamentos/eventos
-export async function streamPagamentosEventos(req: DbInjectedAuthRequest, res: Response): Promise<void> {
+// SSE: stream de eventos de solicitação para um kofrinho (requer auth)
+// GET /api/kofrinhos/:id/solicitacoes/eventos
+export async function streamSolicitacoesEventos(req: DbInjectedAuthRequest, res: Response): Promise<void> {
   const kofrinhoId = parseInt(req.params.id)
   const userId = req.userId!
 
@@ -170,9 +170,9 @@ export async function streamPagamentosEventos(req: DbInjectedAuthRequest, res: R
   })
 }
 
-// Listagem de pagamentos confirmados de um kofrinho (requer auth)
-// GET /api/kofrinhos/:id/pagamentos
-export async function listPagamentos(req: DbInjectedAuthRequest, res: Response) {
+// Listagem de solicitações confirmadas de um kofrinho (requer auth)
+// GET /api/kofrinhos/:id/solicitacoes
+export async function listSolicitacoes(req: DbInjectedAuthRequest, res: Response) {
   try {
     const { id: kofrinhoId } = req.params
     const userId = req.userId
@@ -185,7 +185,7 @@ export async function listPagamentos(req: DbInjectedAuthRequest, res: Response) 
       return res.status(404).json({ erro: 'Kofrinho não encontrado' })
     }
 
-    const pagamentos = await allDbAsync<Pagamento>(req,
+    const solicitacoes = await allDbAsync<Solicitacao>(req,
       `SELECT p.id, p.pagamento_id, p.kofrinho_id, p.depositante_id, p.valor, p.pago, p.pago_em, p.criado_em,
               d.nome AS depositante_nome
        FROM pagamentos p
@@ -195,9 +195,9 @@ export async function listPagamentos(req: DbInjectedAuthRequest, res: Response) 
       [kofrinhoId]
     )
 
-    return res.status(200).json({ pagamentos })
+    return res.status(200).json({ solicitacoes })
   } catch (err) {
-    console.error('❌ Erro ao listar pagamentos:', err)
+    console.error('❌ Erro ao listar solicitações:', err)
     res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }

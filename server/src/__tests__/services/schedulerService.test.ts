@@ -128,9 +128,9 @@ describe('construirPayloadConfrapix', () => {
     expect(p.expiration_date).toBe('2025-06-16 08:00:00')
   })
 
-  test('callback_url contém /api/pagamentos/ e o pagamento_id', () => {
+  test('callback_url contém /api/solicitacoes/ e o solicitacaoId', () => {
     const p = construirPayloadConfrapix(100, null, uuid, agora)
-    expect(p.callback_url).toBe(`https://api.mandacaru.org/api/pagamentos/${uuid}`)
+    expect(p.callback_url).toBe(`https://api.mandacaru.org/api/solicitacoes/${uuid}`)
   })
 })
 
@@ -380,7 +380,7 @@ describe('processarAgendamentos', () => {
     expect(payload.amount).toBe(1500)
     expect(payload.description).toBe('Férias 2025')
     expect(payload.callback_url).toMatch(
-      /^https:\/\/api\.mandacaru\.org\/api\/pagamentos\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+      /^https:\/\/api\.mandacaru\.org\/api\/solicitacoes\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
     )
     expect(payload.expiration_date).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
   })

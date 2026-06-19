@@ -17,7 +17,7 @@ const RECORRENCIA_LABEL: Record<string, string> = {
 function KofrinhoDetails() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { selectedKofrinho, depositantes, pagamentos, loading, error, selectKofrinho, updateKofrinho, deleteKofrinho, fetchDepositantes, deleteDepositante, fetchPagamentos } = useKofrinho()
+  const { selectedKofrinho, depositantes, solicitacoes, loading, error, selectKofrinho, updateKofrinho, deleteKofrinho, fetchDepositantes, deleteDepositante, fetchSolicitacoes } = useKofrinho()
   const [descricao, setDescricao] = useState('')
   const [nome, setNome] = useState('')
   const [mensagem, setMensagem] = useState('')
@@ -29,9 +29,9 @@ function KofrinhoDetails() {
     if (id) {
       selectKofrinho(parseInt(id))
       fetchDepositantes(parseInt(id))
-      fetchPagamentos(parseInt(id))
+      fetchSolicitacoes(parseInt(id))
     }
-  }, [id, selectKofrinho, fetchDepositantes, fetchPagamentos])
+  }, [id, selectKofrinho, fetchDepositantes, fetchSolicitacoes])
 
   // SSE: atualiza "Solicitações" em tempo real quando um pagamento é confirmado
   useEffect(() => {
@@ -45,7 +45,7 @@ function KofrinhoDetails() {
         const tokens = getStoredTokens()
         if (!tokens?.token) return
 
-        const res = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/pagamentos/eventos`, {
+        const res = await fetch(`${API_BASE_URL}/kofrinhos/${kofrinhoId}/solicitacoes/eventos`, {
           headers: { Authorization: `Bearer ${tokens.token}` },
           signal: controller.signal,
         })
@@ -56,8 +56,8 @@ function KofrinhoDetails() {
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
-          if (decoder.decode(value).includes('pagamento_confirmado')) {
-            fetchPagamentos(kofrinhoId)
+          if (decoder.decode(value).includes('solicitacao_confirmada')) {
+            fetchSolicitacoes(kofrinhoId)
           }
         }
       } catch {
@@ -72,7 +72,7 @@ function KofrinhoDetails() {
       controller.abort()
       clearTimeout(reconnectTimeout)
     }
-  }, [id, fetchPagamentos])
+  }, [id, fetchSolicitacoes])
 
   useEffect(() => {
     if (selectedKofrinho) {
@@ -350,13 +350,13 @@ function KofrinhoDetails() {
         )}
       </div>
 
-      <div className="pagamentos-section">
+      <div className="solicitacoes-section">
         <h2>Solicitações</h2>
 
-        {pagamentos.length === 0 ? (
-          <p className="pagamentos-empty">Nenhuma solicitação cadastrada ainda.</p>
+        {solicitacoes.length === 0 ? (
+          <p className="solicitacoes-empty">Nenhuma solicitação cadastrada ainda.</p>
         ) : (
-          <table className="pagamentos-table">
+          <table className="solicitacoes-table">
             <thead>
               <tr>
                 <th>Depositante</th>
@@ -365,7 +365,7 @@ function KofrinhoDetails() {
               </tr>
             </thead>
             <tbody>
-              {pagamentos.map((p) => (
+              {solicitacoes.map((p) => (
                 <tr key={p.id}>
                   <td>{p.depositante_nome}</td>
                   <td>{p.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>

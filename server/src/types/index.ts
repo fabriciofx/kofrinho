@@ -29,7 +29,7 @@ export interface Depositante {
   criado_em: string
 }
 
-export interface Pagamento {
+export interface Solicitacao {
   id: number
   pagamento_id: string
   kofrinho_id: number

@@ -66,7 +66,7 @@ async function criarPagamentoPendente(
 ) {
   const result = await page.evaluate(
     async ({ server, pagamentoId, kofrinhoId, depositanteId, valor }: any) => {
-      const res = await fetch(`${server}/test/pagamentos`, {
+      const res = await fetch(`${server}/test/solicitacoes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pagamento_id: pagamentoId, kofrinho_id: kofrinhoId, depositante_id: depositanteId, valor }),
@@ -78,11 +78,11 @@ async function criarPagamentoPendente(
   expect(result.status).toBe(201)
 }
 
-// Confirma pagamento via webhook público (POST /api/pagamentos/:pagamentoId)
+// Confirma solicitação via webhook público (POST /api/solicitacoes/:solicitacaoId)
 async function confirmarPagamento(page: any, pagamentoId: string) {
   const result = await page.evaluate(
     async ({ api, pagamentoId }: any) => {
-      const res = await fetch(`${api}/pagamentos/${pagamentoId}`, { method: 'POST' })
+      const res = await fetch(`${api}/solicitacoes/${pagamentoId}`, { method: 'POST' })
       return { status: res.status }
     },
     { api: API, pagamentoId }
@@ -137,7 +137,7 @@ test.describe('Solicitações', () => {
     await page.waitForLoadState('networkidle')
 
     await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).toBeVisible()
-    await expect(page.locator('.pagamentos-table')).not.toBeVisible()
+    await expect(page.locator('.solicitacoes-table')).not.toBeVisible()
   })
 
   test('exibe pagamento confirmado após receber webhook', async ({ authenticatedPage: page }) => {
@@ -159,9 +159,9 @@ test.describe('Solicitações', () => {
     await page.waitForURL(/\/kofrinho\/\d+/, { timeout: 8000 })
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('.pagamentos-table')).toBeVisible({ timeout: 8000 })
-    await expect(page.locator('.pagamentos-table tbody').locator('text=João Confirmado')).toBeVisible()
-    await expect(page.locator('.pagamentos-table tbody').locator('text=R$ 750,00')).toBeVisible()
+    await expect(page.locator('.solicitacoes-table')).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('.solicitacoes-table tbody').locator('text=João Confirmado')).toBeVisible()
+    await expect(page.locator('.solicitacoes-table tbody').locator('text=R$ 750,00')).toBeVisible()
     await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).not.toBeVisible()
   })
 
@@ -183,7 +183,7 @@ test.describe('Solicitações', () => {
     await page.waitForURL(/\/kofrinho\/\d+/, { timeout: 8000 })
     await page.waitForLoadState('networkidle')
 
-    const thead = page.locator('.pagamentos-table thead')
+    const thead = page.locator('.solicitacoes-table thead')
     await expect(thead.locator('text=Depositante')).toBeVisible()
     await expect(thead.locator('text=Valor')).toBeVisible()
     await expect(thead.locator('text=Data')).toBeVisible()
@@ -214,8 +214,8 @@ test.describe('Solicitações', () => {
     await confirmarPagamento(page, pagamentoId)
 
     // A tabela deve atualizar automaticamente via SSE sem reload da página
-    await expect(page.locator('.pagamentos-table')).toBeVisible({ timeout: 8000 })
-    await expect(page.locator('.pagamentos-table tbody').locator('text=SSE Depositante')).toBeVisible()
+    await expect(page.locator('.solicitacoes-table')).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('.solicitacoes-table tbody').locator('text=SSE Depositante')).toBeVisible()
     await expect(page.locator('text=Nenhuma solicitação cadastrada ainda.')).not.toBeVisible()
   })
 
@@ -240,10 +240,10 @@ test.describe('Solicitações', () => {
     await page.waitForURL(/\/kofrinho\/\d+/, { timeout: 8000 })
     await page.waitForLoadState('networkidle')
 
-    await expect(page.locator('.pagamentos-table')).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('.solicitacoes-table')).toBeVisible({ timeout: 8000 })
 
     // Verifica que a célula de data exibe um valor formatado (não "—")
-    const celulaData = page.locator('.pagamentos-table tbody tr').first().locator('td').nth(2)
+    const celulaData = page.locator('.solicitacoes-table tbody tr').first().locator('td').nth(2)
     const textoData = await celulaData.innerText()
     expect(textoData).not.toBe('—')
     expect(textoData.length).toBeGreaterThan(5)

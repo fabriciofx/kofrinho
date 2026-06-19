@@ -9,7 +9,7 @@ export interface Kofrinho {
   criado_em: string
 }
 
-export interface Pagamento {
+export interface Solicitacao {
   id: number
   pagamento_id: string
   kofrinho_id: number
@@ -36,7 +36,7 @@ interface KofrinhoContextType {
   kofrinhos: Kofrinho[]
   selectedKofrinho: Kofrinho | null
   depositantes: Depositante[]
-  pagamentos: Pagamento[]
+  solicitacoes: Solicitacao[]
   loading: boolean
   error: string | null
 
@@ -50,7 +50,7 @@ interface KofrinhoContextType {
   updateDepositante: (kofrinhoId: number, depositanteId: number, data: api.DepositanteUpdate) => Promise<void>
   fetchDepositantes: (kofrinhoId: number) => Promise<void>
   deleteDepositante: (kofrinhoId: number, depositanteId: number) => Promise<void>
-  fetchPagamentos: (kofrinhoId: number) => Promise<void>
+  fetchSolicitacoes: (kofrinhoId: number) => Promise<void>
 }
 
 const KofrinhoContext = createContext<KofrinhoContextType | undefined>(undefined)
@@ -59,7 +59,7 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
   const [kofrinhos, setKofrinhos] = useState<Kofrinho[]>([])
   const [selectedKofrinho, setSelectedKofrinho] = useState<Kofrinho | null>(null)
   const [depositantes, setDepositantes] = useState<Depositante[]>([])
-  const [pagamentos, setPagamentos] = useState<Pagamento[]>([])
+  const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -203,12 +203,12 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const fetchPagamentos = useCallback(async (kofrinhoId: number) => {
+  const fetchSolicitacoes = useCallback(async (kofrinhoId: number) => {
     try {
-      const data = await api.listPagamentos(kofrinhoId)
-      setPagamentos(data)
+      const data = await api.listSolicitacoes(kofrinhoId)
+      setSolicitacoes(data)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erro ao carregar pagamentos'
+      const message = err instanceof Error ? err.message : 'Erro ao carregar solicitações'
       setError(message)
     }
   }, [])
@@ -217,7 +217,7 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     kofrinhos,
     selectedKofrinho,
     depositantes,
-    pagamentos,
+    solicitacoes,
     loading,
     error,
 
@@ -231,7 +231,7 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     updateDepositante,
     fetchDepositantes,
     deleteDepositante,
-    fetchPagamentos,
+    fetchSolicitacoes,
   }
 
   return <KofrinhoContext.Provider value={value}>{children}</KofrinhoContext.Provider>

@@ -8,7 +8,7 @@ import { iniciarAgendador } from './services/schedulerService.js'
 import authRoutes from './routes/authRoutes.js'
 import kofrinhoRoutes from './routes/kofrinhoRoutes.js'
 import avatarRoutes from './routes/avatarRoutes.js'
-import { registrarPagamento } from './controllers/pagamentoController.js'
+import { registrarSolicitacao } from './controllers/solicitacaoController.js'
 import { runAsync } from './database/db.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -39,21 +39,21 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server running on port 3000' })
 })
 
-// Webhook Confrapix: confirma pagamento (sem auth)
-app.post('/api/pagamentos/:pagamentoId', registrarPagamento)
+// Webhook Confrapix: confirma solicitação (sem auth)
+app.post('/api/solicitacoes/:solicitacaoId', registrarSolicitacao)
 
-// Rota auxiliar para criar pagamentos pendentes em testes E2E (não disponível em produção)
+// Rota auxiliar para criar solicitações pendentes em testes E2E (não disponível em produção)
 if (process.env.TEST_ROUTES === 'true') {
-  app.post('/test/pagamentos', async (req, res) => {
+  app.post('/test/solicitacoes', async (req, res) => {
     try {
       const { pagamento_id, kofrinho_id, depositante_id, valor } = req.body
       await runAsync(
         'INSERT INTO pagamentos (pagamento_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, 0)',
         [pagamento_id, kofrinho_id, depositante_id, valor]
       )
-      res.status(201).json({ message: 'Pagamento de teste criado' })
+      res.status(201).json({ message: 'Solicitação de teste criada' })
     } catch (err) {
-      res.status(500).json({ erro: 'Erro ao criar pagamento de teste' })
+      res.status(500).json({ erro: 'Erro ao criar solicitação de teste' })
     }
   })
 }
