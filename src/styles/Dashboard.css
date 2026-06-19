@@ -181,13 +181,14 @@
 
 .card-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: auto;
   flex-shrink: 0;
 }
 
 .btn-view {
-  flex: 1;
+  flex: 1 1 100%;
   padding: 0.5rem 1rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -205,6 +206,8 @@
 }
 
 .btn-depositante {
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 0.5rem 0.75rem;
   background: linear-gradient(135deg, #28a745 0%, #20883a 100%);
   color: white;
@@ -222,6 +225,8 @@
 }
 
 .btn-delete-small {
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 0.5rem 0.75rem;
   background-color: #dc3545;
   color: white;
