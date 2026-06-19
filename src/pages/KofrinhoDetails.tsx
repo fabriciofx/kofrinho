@@ -14,6 +14,13 @@ const RECORRENCIA_LABEL: Record<string, string> = {
   anual: 'Anual',
 }
 
+// Datas do SQLite vêm como 'YYYY-MM-DD HH:MM:SS' em UTC, sem marcador de fuso.
+// Adiciona 'Z' para parse correto e exibe no horário de Brasília.
+function formatarDataBrasilia(data: string): string {
+  const iso = data.includes('T') ? data : data.replace(' ', 'T') + 'Z'
+  return new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+}
+
 function KofrinhoDetails() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
@@ -370,7 +377,7 @@ function KofrinhoDetails() {
                 <tr key={p.id}>
                   <td>{p.depositante_nome}</td>
                   <td>{p.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                  <td>{new Date(p.criado_em).toLocaleString('pt-BR')}</td>
+                  <td>{formatarDataBrasilia(p.criado_em)}</td>
                   <td>
                     <span
                       className={`situacao-badge ${p.pago === 1 ? 'situacao-paga' : 'situacao-a-pagar'}`}
