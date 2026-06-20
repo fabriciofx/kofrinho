@@ -71,6 +71,17 @@ if (process.env.TEST_ROUTES === 'true') {
       res.status(500).json({ erro: 'Erro ao criar depositante de teste' })
     }
   })
+
+  // Remove um usuário de teste pelo e-mail. O CASCADE apaga em sequência:
+  // kofrinhos → depositantes → agendamentos + solicitações.
+  app.delete('/test/users/:email', async (req, res) => {
+    try {
+      await runAsync('DELETE FROM users WHERE email = ?', [req.params.email])
+      res.status(200).json({ message: 'Usuário removido' })
+    } catch (err) {
+      res.status(500).json({ erro: 'Erro ao remover usuário de teste' })
+    }
+  })
 }
 
 // Catch-all: rotas não encontradas retornam JSON, nunca HTML
