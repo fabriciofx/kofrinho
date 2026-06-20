@@ -108,6 +108,13 @@ function carregarResendApiKey(): string {
   )
 }
 
+// E-mails só são realmente enviados em produção. Em desenvolvimento e testes
+// o envio é pulado, evitando falhas/spam do Resend (ex.: o scheduler tentando
+// enviar a cada ciclo para depositantes de teste).
+function envioDeEmailHabilitado(): boolean {
+  return process.env.NODE_ENV === 'production'
+}
+
 export async function sendAgendamentoEmail(
   emailDepositante: string,
   nomeDonoKofrinho: string,
@@ -118,6 +125,11 @@ export async function sendAgendamentoEmail(
   pixUrl: string,
   pixCode: string
 ): Promise<void> {
+  if (!envioDeEmailHabilitado()) {
+    console.log(`✉️  (dev/test) e-mail de agendamento para ${emailDepositante} não enviado`)
+    return
+  }
+
   const valorFormatado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   const referencia = descricaoKofrinho || nomeKofrinho
 
@@ -168,7 +180,7 @@ export async function sendSolicitacaoConfirmadaEmail(
   valor: number,
   pago_em: string
 ): Promise<void> {
-  if (process.env.NODE_ENV === 'test') return
+  if (!envioDeEmailHabilitado()) return
 
   const valorFormatado = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   // pago_em vem do SQLite como 'YYYY-MM-DD HH:MM:SS' UTC — adiciona 'Z' para parse correto
