@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useKofrinho, type Kofrinho } from '../context/KofrinhoContext'
+import { API_BASE_URL, getStoredTokens } from '../api/client'
 import { AvatarUpload } from '../components/AvatarUpload'
 import KofrinhoForm from '../components/KofrinhoForm'
 import EditKofrinhoForm from '../components/EditKofrinhoForm'
@@ -31,6 +32,50 @@ export default function Home() {
       fetchKofrinhos()
     }
   }, [isAuthenticated])
+
+  // Mantém a referência mais recente de fetchKofrinhos (não é memoizada no contexto)
+  const fetchKofrinhosRef = useRef(fetchKofrinhos)
+  useEffect(() => { fetchKofrinhosRef.current = fetchKofrinhos })
+
+  // SSE: atualiza o saldo dos cards do dashboard ao vivo (uma conexão por usuário)
+  useEffect(() => {
+    if (!isAuthenticated || mode !== 'dashboard') return
+    const tokens = getStoredTokens()
+    if (!tokens?.token) return
+
+    const controller = new AbortController()
+    let reconnectTimeout: ReturnType<typeof setTimeout>
+
+    async function conectar() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/kofrinhos/eventos`, {
+          headers: { Authorization: `Bearer ${tokens!.token}` },
+          signal: controller.signal,
+        })
+        if (!res.ok || !res.body) return
+
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          if (decoder.decode(value).includes('saldo_atualizado')) {
+            fetchKofrinhosRef.current()
+          }
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          reconnectTimeout = setTimeout(conectar, 5000)
+        }
+      }
+    }
+
+    conectar()
+    return () => {
+      controller.abort()
+      clearTimeout(reconnectTimeout)
+    }
+  }, [isAuthenticated, mode])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({

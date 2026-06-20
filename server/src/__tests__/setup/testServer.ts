@@ -7,7 +7,7 @@ import path from 'path'
 import { register, login, refreshToken, requestPasswordReset, resetPassword } from '../../controllers/authController.js'
 import { createKofrinho, listKofrinhos, getKofrinho, updateKofrinho, deleteKofrinho } from '../../controllers/kofrinhoController.js'
 import { createDepositante, listDepositantes, updateDepositante, deleteDepositante } from '../../controllers/depositanteController.js'
-import { registrarSolicitacao, listSolicitacoes, streamSolicitacoesEventos } from '../../controllers/solicitacaoController.js'
+import { registrarSolicitacao, listSolicitacoes, streamSolicitacoesEventos, streamUsuarioEventos } from '../../controllers/solicitacaoController.js'
 import { uploadAvatar, deleteAvatar } from '../../controllers/avatarController.js'
 import { authMiddleware } from '../../middleware/auth.js'
 import { uploadMiddleware } from '../../config/multer.js'
@@ -46,6 +46,7 @@ export async function startTestServer(db: sqlite3.Database): Promise<TestServerS
 
   app.post('/api/kofrinhos', authMiddleware, createKofrinho)
   app.get('/api/kofrinhos', authMiddleware, listKofrinhos)
+  app.get('/api/kofrinhos/eventos', authMiddleware, streamUsuarioEventos)
   app.get('/api/kofrinhos/:id', authMiddleware, getKofrinho)
   app.put('/api/kofrinhos/:id', authMiddleware, updateKofrinho)
   app.delete('/api/kofrinhos/:id', authMiddleware, deleteKofrinho)

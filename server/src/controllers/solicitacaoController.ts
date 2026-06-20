@@ -29,6 +29,31 @@ export function notificarKofrinho(kofrinhoId: number, tipo = 'solicitacao_atuali
   }
 }
 
+// ─── SSE: registro de clientes por usuário (dashboard) ─────────────────────────
+// Usado para atualizar o saldo dos cards ao vivo, com uma única conexão por usuário.
+const sseUserClients = new Map<number, Set<Response>>()
+
+function adicionarSseUserClient(userId: number, res: Response): void {
+  if (!sseUserClients.has(userId)) sseUserClients.set(userId, new Set())
+  sseUserClients.get(userId)!.add(res)
+}
+
+function removerSseUserClient(userId: number, res: Response): void {
+  const set = sseUserClients.get(userId)
+  if (!set) return
+  set.delete(res)
+  if (set.size === 0) sseUserClients.delete(userId)
+}
+
+// Notifica os clientes SSE de um usuário (todos os seus kofrinhos no dashboard).
+export function notificarUsuario(userId: number, tipo = 'saldo_atualizado'): void {
+  const clients = sseUserClients.get(userId)
+  if (!clients) return
+  for (const res of clients) {
+    res.write(`data: ${JSON.stringify({ tipo })}\n\n`)
+  }
+}
+
 interface DbInjectedRequest extends Request {
   testDb?: any
 }
@@ -82,8 +107,10 @@ export async function registrarSolicitacao(req: DbInjectedRequest, res: Response
   try {
     const { solicitacaoId } = req.params
 
-    const solicitacao = await getDbAsync<{ id: number; pago: number; kofrinho_id: number }>(req,
-      'SELECT id, pago, kofrinho_id FROM solicitacoes WHERE solicitacao_id = ?',
+    const solicitacao = await getDbAsync<{ id: number; pago: number; kofrinho_id: number; user_id: number }>(req,
+      `SELECT s.id, s.pago, s.kofrinho_id, k.user_id
+       FROM solicitacoes s JOIN kofrinhos k ON s.kofrinho_id = k.id
+       WHERE s.solicitacao_id = ?`,
       [solicitacaoId]
     )
     if (!solicitacao) {
@@ -101,6 +128,8 @@ export async function registrarSolicitacao(req: DbInjectedRequest, res: Response
     )
 
     notificarKofrinho(solicitacao.kofrinho_id, 'solicitacao_confirmada')
+    // Atualiza o saldo dos cards no dashboard do dono ao vivo
+    notificarUsuario(solicitacao.user_id, 'saldo_atualizado')
 
     // Busca dados para o e-mail de confirmação e dispara de forma assíncrona
     const dadosEmail = await getDbAsync<{
@@ -169,6 +198,27 @@ export async function streamSolicitacoesEventos(req: DbInjectedAuthRequest, res:
   res.on('close', () => {
     clearInterval(heartbeat)
     removerSseClient(kofrinhoId, res)
+  })
+}
+
+// SSE: stream de eventos do usuário para o dashboard (requer auth)
+// GET /api/kofrinhos/eventos — usado para atualizar o saldo dos cards ao vivo
+export async function streamUsuarioEventos(req: DbInjectedAuthRequest, res: Response): Promise<void> {
+  const userId = req.userId!
+
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.flushHeaders()
+
+  res.write(': connected\n\n')
+  adicionarSseUserClient(userId, res)
+
+  const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 30000)
+
+  res.on('close', () => {
+    clearInterval(heartbeat)
+    removerSseUserClient(userId, res)
   })
 }
 
