@@ -63,10 +63,27 @@ function runDbAsyncWithLastId(req: any, sql: string, params: any[]): Promise<num
 
 const RECORRENCIAS_VALIDAS = ['anual', 'mensal', 'semanal', 'diario']
 
+// Valida uma data no formato 'YYYY-MM-DD' e devolve suas partes, ou null se inválida.
+function parseDataInicio(value: any): { y: number; m: number; d: number } | null {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
+  const [y, m, d] = value.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null
+  return { y, m, d }
+}
+
+// A partir da data de início escolhida, calcula a primeira execução do agendamento
+// (meia-noite local daquele dia). É a partir dela que o scheduler dispara o e-mail
+// e a recorrência avança (diária, semanal, mensal ou anual) preservando o dia.
+function proximaExecucaoDeData(value: string): string {
+  const { y, m, d } = parseDataInicio(value)!
+  return new Date(y, m - 1, d, 0, 0, 0).toISOString()
+}
+
 export async function createDepositante(req: DbInjectedRequest, res: Response) {
   try {
     const { id: kofrinhoId } = req.params
-    const { nome, valor, recorrencia, email, telefone } = req.body
+    const { nome, valor, recorrencia, email, telefone, data_inicio } = req.body
     const userId = req.userId
 
     const kofrinho = await getDbAsync<{ id: number }>(req,
@@ -86,6 +103,13 @@ export async function createDepositante(req: DbInjectedRequest, res: Response) {
     if (!recorrencia || !RECORRENCIAS_VALIDAS.includes(recorrencia)) {
       return res.status(400).json({ erro: 'Recorrência inválida. Use: anual, mensal, semanal ou diario' })
     }
+    // data_inicio é opcional: se ausente, mantém o comportamento de envio imediato.
+    // Se informada, deve ser uma data válida no formato AAAA-MM-DD.
+    const temData = data_inicio !== undefined && data_inicio !== null && data_inicio !== ''
+    if (temData && !parseDataInicio(data_inicio)) {
+      return res.status(400).json({ erro: 'Data de início inválida. Use o formato AAAA-MM-DD' })
+    }
+    const dataInicioNorm = temData ? data_inicio : null
     const emailNorm = email ? String(email).trim() : null
     if (!emailNorm) {
       return res.status(400).json({ erro: 'E-mail é obrigatório' })
@@ -96,17 +120,19 @@ export async function createDepositante(req: DbInjectedRequest, res: Response) {
     const telefoneNorm = telefone ? String(telefone).trim() : null
 
     const lastId = await runDbAsyncWithLastId(req,
-      'INSERT INTO depositantes (kofrinho_id, nome, valor, recorrencia, email, telefone) VALUES (?, ?, ?, ?, ?, ?)',
-      [kofrinhoId, nome.trim(), Number(valor), recorrencia, emailNorm, telefoneNorm]
+      'INSERT INTO depositantes (kofrinho_id, nome, valor, recorrencia, email, telefone, data_inicio) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [kofrinhoId, nome.trim(), Number(valor), recorrencia, emailNorm, telefoneNorm, dataInicioNorm]
     )
 
     const depositante = await getDbAsync<Depositante>(req,
-      'SELECT id, kofrinho_id, nome, valor, recorrencia, email, telefone, criado_em FROM depositantes WHERE id = ?',
+      'SELECT id, kofrinho_id, nome, valor, recorrencia, email, telefone, data_inicio, criado_em FROM depositantes WHERE id = ?',
       [lastId]
     )
 
-    // proxima_execucao = agora → scheduler envia o primeiro e-mail imediatamente
-    const proxima = new Date().toISOString()
+    // proxima_execucao = data de início escolhida (meia-noite daquele dia) → o scheduler
+    // envia o primeiro e-mail a partir desse dia e a recorrência avança a partir dele.
+    // Sem data, mantém o envio imediato (agora).
+    const proxima = dataInicioNorm ? proximaExecucaoDeData(dataInicioNorm) : new Date().toISOString()
     await runDbAsync(req,
       'INSERT INTO agendamentos (depositante_id, kofrinho_id, user_id, recorrencia, proxima_execucao) VALUES (?, ?, ?, ?, ?)',
       [lastId, kofrinhoId, userId, recorrencia, proxima]
@@ -122,7 +148,7 @@ export async function createDepositante(req: DbInjectedRequest, res: Response) {
 export async function updateDepositante(req: DbInjectedRequest, res: Response) {
   try {
     const { id: kofrinhoId, depositanteId } = req.params
-    const { nome, valor, recorrencia, email, telefone } = req.body
+    const { nome, valor, recorrencia, email, telefone, data_inicio } = req.body
     const userId = req.userId
 
     const kofrinho = await getDbAsync<{ id: number }>(req,
@@ -146,6 +172,9 @@ export async function updateDepositante(req: DbInjectedRequest, res: Response) {
     if (recorrencia !== undefined && !RECORRENCIAS_VALIDAS.includes(recorrencia)) {
       return res.status(400).json({ erro: 'Recorrência inválida. Use: anual, mensal, semanal ou diario' })
     }
+    if (data_inicio !== undefined && !parseDataInicio(data_inicio)) {
+      return res.status(400).json({ erro: 'Data de início inválida. Use o formato AAAA-MM-DD' })
+    }
 
     let emailNorm: string | undefined
     if (email !== undefined) {
@@ -163,6 +192,7 @@ export async function updateDepositante(req: DbInjectedRequest, res: Response) {
     if (recorrencia !== undefined) { sets.push('recorrencia = ?'); params.push(recorrencia) }
     if (emailNorm !== undefined) { sets.push('email = ?');       params.push(emailNorm) }
     if (telefoneNorm !== undefined) { sets.push('telefone = ?'); params.push(telefoneNorm) }
+    if (data_inicio !== undefined) { sets.push('data_inicio = ?'); params.push(data_inicio) }
 
     if (sets.length === 0) {
       return res.status(400).json({ erro: 'Nenhum campo para atualizar' })
@@ -171,15 +201,26 @@ export async function updateDepositante(req: DbInjectedRequest, res: Response) {
     params.push(depositanteId)
     await runDbAsync(req, `UPDATE depositantes SET ${sets.join(', ')} WHERE id = ?`, params)
 
+    // Atualiza o agendamento quando a recorrência ou a data de início mudam.
+    // Se a data de início mudou, a próxima execução é recalculada a partir dela.
+    const agSets: string[] = []
+    const agParams: any[] = []
     if (recorrencia !== undefined && recorrencia !== depositanteAtual.recorrencia) {
+      agSets.push('recorrencia = ?'); agParams.push(recorrencia)
+    }
+    if (data_inicio !== undefined) {
+      agSets.push('proxima_execucao = ?'); agParams.push(proximaExecucaoDeData(data_inicio))
+    }
+    if (agSets.length > 0) {
+      agParams.push(depositanteId)
       await runDbAsync(req,
-        'UPDATE agendamentos SET recorrencia = ? WHERE depositante_id = ?',
-        [recorrencia, depositanteId]
+        `UPDATE agendamentos SET ${agSets.join(', ')} WHERE depositante_id = ?`,
+        agParams
       )
     }
 
     const depositante = await getDbAsync<Depositante>(req,
-      'SELECT id, kofrinho_id, nome, valor, recorrencia, email, telefone, criado_em FROM depositantes WHERE id = ?',
+      'SELECT id, kofrinho_id, nome, valor, recorrencia, email, telefone, data_inicio, criado_em FROM depositantes WHERE id = ?',
       [depositanteId]
     )
 
@@ -244,7 +285,7 @@ export async function listDepositantes(req: DbInjectedRequest, res: Response) {
     }
 
     const depositantes = await allDbAsync<Depositante>(req,
-      'SELECT id, kofrinho_id, nome, valor, recorrencia, email, telefone, criado_em FROM depositantes WHERE kofrinho_id = ? ORDER BY criado_em DESC',
+      'SELECT id, kofrinho_id, nome, valor, recorrencia, email, telefone, data_inicio, criado_em FROM depositantes WHERE kofrinho_id = ? ORDER BY criado_em DESC',
       [kofrinhoId]
     )
 

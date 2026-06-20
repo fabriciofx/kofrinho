@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useKofrinho, type Depositante } from '../context/KofrinhoContext'
+import { hojeISO, dicaRecorrencia } from './DepositanteForm'
 import '../styles/DepositanteForm.css'
 
 const RECORRENCIAS = [
@@ -20,6 +21,7 @@ function EditDepositanteForm({ kofrinhoId, depositante, onSuccess }: EditDeposit
   const [nome, setNome] = useState(depositante.nome)
   const [valor, setValor] = useState(String(depositante.valor))
   const [recorrencia, setRecorrencia] = useState(depositante.recorrencia)
+  const [dataInicio, setDataInicio] = useState(depositante.data_inicio ?? hojeISO())
   const [email, setEmail] = useState(depositante.email ?? '')
   const [telefone, setTelefone] = useState(depositante.telefone ?? '')
   const [mensagem, setMensagem] = useState('')
@@ -39,6 +41,7 @@ function EditDepositanteForm({ kofrinhoId, depositante, onSuccess }: EditDeposit
         nome: nome.trim(),
         valor: valorNum,
         recorrencia,
+        data_inicio: dataInicio,
         email: email.trim(),
         telefone: telefone.trim() || null,
       })
@@ -86,6 +89,27 @@ function EditDepositanteForm({ kofrinhoId, depositante, onSuccess }: EditDeposit
             <option key={r.value} value={r.value}>{r.label}</option>
           ))}
         </select>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="edit-depositante-data-inicio">Data de início</label>
+        <div className="data-inicio-row">
+          <input
+            id="edit-depositante-data-inicio"
+            type="date"
+            value={dataInicio}
+            onChange={(e) => setDataInicio(e.target.value)}
+            required
+          />
+          <button
+            type="button"
+            className="btn-hoje"
+            onClick={() => setDataInicio(hojeISO())}
+          >
+            Hoje
+          </button>
+        </div>
+        <small className="data-inicio-hint">{dicaRecorrencia(recorrencia, dataInicio)}</small>
       </div>
 
       <div className="form-group">

@@ -26,6 +26,7 @@ export interface Depositante {
   recorrencia: 'anual' | 'mensal' | 'semanal' | 'diario'
   email: string | null
   telefone: string | null
+  data_inicio: string | null
   criado_em: string
 }
 

@@ -29,6 +29,7 @@ export interface Depositante {
   recorrencia: 'anual' | 'mensal' | 'semanal' | 'diario'
   email: string | null
   telefone: string | null
+  data_inicio: string | null
   criado_em: string
 }
 
@@ -46,7 +47,7 @@ interface KofrinhoContextType {
   updateKofrinho: (id: number, nome?: string, descricao?: string) => Promise<void>
   deleteKofrinho: (id: number) => Promise<void>
   clearSelected: () => void
-  createDepositante: (kofrinhoId: number, nome: string, valor: number, recorrencia: string, email?: string, telefone?: string) => Promise<void>
+  createDepositante: (kofrinhoId: number, nome: string, valor: number, recorrencia: string, dataInicio: string, email?: string, telefone?: string) => Promise<void>
   updateDepositante: (kofrinhoId: number, depositanteId: number, data: api.DepositanteUpdate) => Promise<void>
   fetchDepositantes: (kofrinhoId: number) => Promise<void>
   deleteDepositante: (kofrinhoId: number, depositanteId: number) => Promise<void>
@@ -155,10 +156,10 @@ export function KofrinhoProvider({ children }: { children: ReactNode }) {
     setDepositantes([])
   }
 
-  const createDepositante = useCallback(async (kofrinhoId: number, nome: string, valor: number, recorrencia: string, email?: string, telefone?: string) => {
+  const createDepositante = useCallback(async (kofrinhoId: number, nome: string, valor: number, recorrencia: string, dataInicio: string, email?: string, telefone?: string) => {
     setLoading(true)
     try {
-      await api.createDepositante(kofrinhoId, nome, valor, recorrencia, email, telefone)
+      await api.createDepositante(kofrinhoId, nome, valor, recorrencia, dataInicio, email, telefone)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar depositante'
       setError(message)

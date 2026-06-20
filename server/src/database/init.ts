@@ -47,6 +47,7 @@ export async function initializeDatabase() {
         recorrencia TEXT NOT NULL CHECK(recorrencia IN ('anual', 'mensal', 'semanal', 'diario')),
         email TEXT,
         telefone TEXT,
+        data_inicio TEXT,
         criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (kofrinho_id) REFERENCES kofrinhos(id) ON DELETE CASCADE
       )
@@ -60,6 +61,7 @@ export async function initializeDatabase() {
     // Migrations: adiciona colunas em bancos existentes (ignorado se já existirem)
     try { await runAsync('ALTER TABLE depositantes ADD COLUMN email TEXT') } catch { /* já existe */ }
     try { await runAsync('ALTER TABLE depositantes ADD COLUMN telefone TEXT') } catch { /* já existe */ }
+    try { await runAsync('ALTER TABLE depositantes ADD COLUMN data_inicio TEXT') } catch { /* já existe */ }
 
     await runAsync(`
       CREATE TABLE IF NOT EXISTS agendamentos (

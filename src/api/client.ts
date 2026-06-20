@@ -54,6 +54,7 @@ export interface Depositante {
   recorrencia: 'anual' | 'mensal' | 'semanal' | 'diario'
   email: string | null
   telefone: string | null
+  data_inicio: string | null
   criado_em: string
 }
 
@@ -302,6 +303,7 @@ export async function createDepositante(
   nome: string,
   valor: number,
   recorrencia: string,
+  dataInicio: string,
   email?: string,
   telefone?: string
 ): Promise<{ message: string; depositante: Depositante }> {
@@ -311,7 +313,7 @@ export async function createDepositante(
       'Content-Type': 'application/json',
       ...getAuthHeaders()
     },
-    body: JSON.stringify({ nome, valor, recorrencia, email: email || null, telefone: telefone || null })
+    body: JSON.stringify({ nome, valor, recorrencia, data_inicio: dataInicio, email: email || null, telefone: telefone || null })
   })
   return handleResponse(response)
 }
@@ -320,6 +322,7 @@ export interface DepositanteUpdate {
   nome?: string
   valor?: number
   recorrencia?: string
+  data_inicio?: string
   email?: string
   telefone?: string | null
 }

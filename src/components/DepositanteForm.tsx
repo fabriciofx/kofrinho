@@ -14,11 +14,32 @@ const RECORRENCIAS = [
   { value: 'anual', label: 'Anual' },
 ]
 
+// Data de hoje no formato 'YYYY-MM-DD' (horário local)
+export function hojeISO(): string {
+  const d = new Date()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${dd}`
+}
+
+// Explica, conforme a recorrência, quando a solicitação (e-mail) será enviada
+export function dicaRecorrencia(recorrencia: string, data: string): string {
+  const [y, m, d] = data.split('-')
+  switch (recorrencia) {
+    case 'diario':  return `A solicitação será enviada diariamente a partir de ${d}/${m}/${y}.`
+    case 'semanal': return `A solicitação será enviada semanalmente a partir de ${d}/${m}/${y}.`
+    case 'mensal':  return `A solicitação será enviada todo mês no dia ${d}, a partir de ${m}/${y}.`
+    case 'anual':   return `A solicitação será enviada todo ano em ${d}/${m}.`
+    default:        return ''
+  }
+}
+
 function DepositanteForm({ kofrinhoId, onSuccess }: DepositanteFormProps) {
   const { createDepositante, loading } = useKofrinho()
   const [nome, setNome] = useState('')
   const [valor, setValor] = useState('')
   const [recorrencia, setRecorrencia] = useState('mensal')
+  const [dataInicio, setDataInicio] = useState(hojeISO())
   const [email, setEmail] = useState('')
   const [telefone, setTelefone] = useState('')
   const [mensagem, setMensagem] = useState('')
@@ -33,12 +54,18 @@ function DepositanteForm({ kofrinhoId, onSuccess }: DepositanteFormProps) {
       return
     }
 
+    if (!dataInicio) {
+      setMensagem('Escolha a data de início')
+      return
+    }
+
     try {
       await createDepositante(
         kofrinhoId,
         nome.trim(),
         valorNum,
         recorrencia,
+        dataInicio,
         email.trim() || undefined,
         telefone.trim() || undefined
       )
@@ -46,6 +73,7 @@ function DepositanteForm({ kofrinhoId, onSuccess }: DepositanteFormProps) {
       setNome('')
       setValor('')
       setRecorrencia('mensal')
+      setDataInicio(hojeISO())
       setEmail('')
       setTelefone('')
       if (onSuccess) setTimeout(() => onSuccess(), 1200)
@@ -93,6 +121,28 @@ function DepositanteForm({ kofrinhoId, onSuccess }: DepositanteFormProps) {
             <option key={r.value} value={r.value}>{r.label}</option>
           ))}
         </select>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="depositante-data-inicio">Data de início</label>
+        <div className="data-inicio-row">
+          <input
+            id="depositante-data-inicio"
+            type="date"
+            min={hojeISO()}
+            value={dataInicio}
+            onChange={(e) => setDataInicio(e.target.value)}
+            required
+          />
+          <button
+            type="button"
+            className="btn-hoje"
+            onClick={() => setDataInicio(hojeISO())}
+          >
+            Hoje
+          </button>
+        </div>
+        <small className="data-inicio-hint">{dicaRecorrencia(recorrencia, dataInicio)}</small>
       </div>
 
       <div className="form-group">

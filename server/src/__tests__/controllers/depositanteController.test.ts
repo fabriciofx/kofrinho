@@ -1,8 +1,10 @@
+import { jest } from '@jest/globals'
 import request from 'supertest'
 import sqlite3 from 'sqlite3'
 import { setupTestDb, closeTestDb, getAsync } from '../setup/database.js'
 import { startTestServer, stopTestServer, TestServerSetup } from '../setup/testServer.js'
 import { createValidUser } from '../setup/fixtures.js'
+import { processarAgendamentos } from '../../services/schedulerService.js'
 
 describe('Depositante Controller', () => {
   let testServer: TestServerSetup
@@ -631,6 +633,122 @@ describe('Depositante Controller', () => {
         .set('Authorization', `Bearer ${otherReg.body.token}`)
 
       expect(res.status).toBe(404)
+    })
+  })
+
+  // ─── Data de início da recorrência (agendamento + envio de solicitação) ──────
+
+  describe('Data de início da recorrência', () => {
+    // Extrai o dia local (ano/mês/dia) de uma data ISO — o cálculo de recorrência
+    // opera em horário local, então comparamos no mesmo referencial.
+    function diaLocal(iso: string) {
+      const dt = new Date(iso)
+      return { y: dt.getFullYear(), m: dt.getMonth() + 1, d: dt.getDate() }
+    }
+
+    function novoMockEnvio(): { mockSend: ReturnType<typeof jest.fn>; mockConfrapix: ReturnType<typeof jest.fn> } {
+      process.env.KOFRINHO_API_URL = 'https://api.test/api'
+      const mockSend: ReturnType<typeof jest.fn> = jest.fn().mockImplementation(() => Promise.resolve())
+      const mockConfrapix: ReturnType<typeof jest.fn> = jest.fn().mockImplementation(() =>
+        Promise.resolve({ pixUrl: 'data:image/png;base64,QR', pixCode: 'pix-code' })
+      )
+      return { mockSend, mockConfrapix }
+    }
+
+    test('armazena a data de início escolhida no depositante', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Com Data', valor: 100, recorrencia: 'mensal', email: 'comdata@teste.com', data_inicio: '2030-03-15' })
+
+      expect(res.status).toBe(201)
+      expect(res.body.depositante.data_inicio).toBe('2030-03-15')
+
+      const row = await getAsync<{ data_inicio: string }>(
+        testDb, 'SELECT data_inicio FROM depositantes WHERE id = ?', [res.body.depositante.id]
+      )
+      expect(row?.data_inicio).toBe('2030-03-15')
+    })
+
+    test('o agendamento usa a data escolhida como primeira execução (preserva o dia)', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Dia 15', valor: 100, recorrencia: 'mensal', email: 'dia15@teste.com', data_inicio: '2030-03-15' })
+
+      const ag = await getAsync<{ proxima_execucao: string }>(
+        testDb, 'SELECT proxima_execucao FROM agendamentos WHERE depositante_id = ?', [res.body.depositante.id]
+      )
+      expect(diaLocal(ag!.proxima_execucao)).toEqual({ y: 2030, m: 3, d: 15 })
+    })
+
+    test('retorna 400 para data_inicio em formato inválido', async () => {
+      for (const data_inicio of ['ontem', '15/03/2030', '2030-13-40', '2030-02-30']) {
+        const res = await request(testServer.app)
+          .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+          .set('Authorization', `Bearer ${validToken}`)
+          .send({ nome: 'Data Ruim', valor: 100, recorrencia: 'mensal', email: 'dataruim@teste.com', data_inicio })
+        expect(res.status).toBe(400)
+        expect(res.body.erro).toContain('Data de início inválida')
+      }
+    })
+
+    test('NÃO envia a solicitação antes da data escolhida (data futura)', async () => {
+      const emailUnico = `futuro-${Date.now()}@teste.com`
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Futuro', valor: 100, recorrencia: 'mensal', email: emailUnico, data_inicio: '2100-06-15' })
+      const depId = res.body.depositante.id
+
+      const { mockSend, mockConfrapix } = novoMockEnvio()
+      await processarAgendamentos(testDb, mockSend, mockConfrapix)
+
+      // o depositante com data futura não deve ter recebido e-mail
+      expect(mockSend.mock.calls.some((c) => c[0] === emailUnico)).toBe(false)
+
+      // e a próxima execução continua sendo a data futura escolhida
+      const ag = await getAsync<{ proxima_execucao: string }>(
+        testDb, 'SELECT proxima_execucao FROM agendamentos WHERE depositante_id = ?', [depId]
+      )
+      expect(diaLocal(ag!.proxima_execucao)).toEqual({ y: 2100, m: 6, d: 15 })
+      delete process.env.KOFRINHO_API_URL
+    })
+
+    test('envia a solicitação (e-mail) corretamente quando a data escolhida já chegou', async () => {
+      const emailUnico = `passado-${Date.now()}@teste.com`
+      await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Passado', valor: 250, recorrencia: 'mensal', email: emailUnico, data_inicio: '2020-01-10' })
+
+      const { mockSend, mockConfrapix } = novoMockEnvio()
+      await processarAgendamentos(testDb, mockSend, mockConfrapix)
+
+      const chamada = mockSend.mock.calls.find((c) => c[0] === emailUnico)
+      expect(chamada).toBeDefined()
+      // args do sendFn: [email, nomeDono, nomeKofrinho, descricao, valor, recorrencia, pixUrl, pixCode]
+      expect(chamada![4]).toBe(250)
+      expect(chamada![5]).toBe('mensal')
+      delete process.env.KOFRINHO_API_URL
+    })
+
+    test('atualizar a data de início recalcula a próxima execução do agendamento', async () => {
+      const res = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Edita Data', valor: 100, recorrencia: 'anual', email: 'editadata@teste.com', data_inicio: '2030-03-15' })
+      const depId = res.body.depositante.id
+
+      await request(testServer.app)
+        .put(`/api/kofrinhos/${kofrinhoId}/depositantes/${depId}`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ data_inicio: '2031-09-20' })
+
+      const ag = await getAsync<{ proxima_execucao: string }>(
+        testDb, 'SELECT proxima_execucao FROM agendamentos WHERE depositante_id = ?', [depId]
+      )
+      expect(diaLocal(ag!.proxima_execucao)).toEqual({ y: 2031, m: 9, d: 20 })
     })
   })
 })
