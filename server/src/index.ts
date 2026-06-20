@@ -85,7 +85,13 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando em http://localhost:${PORT}`)
       console.log(`📊 Documentação: http://localhost:${PORT}/api/health`)
-      iniciarAgendador()
+      // SCHEDULER_DISABLED=true desliga o agendador (usado nos testes E2E,
+      // para evitar escritas a cada segundo que sobrecarregam o servidor)
+      if (process.env.SCHEDULER_DISABLED === 'true') {
+        console.log('⏸ Agendador desabilitado (SCHEDULER_DISABLED=true)')
+      } else {
+        iniciarAgendador()
+      }
     })
   } catch (err) {
     console.error('❌ Falha ao iniciar servidor:', err)

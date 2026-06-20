@@ -32,6 +32,9 @@ export default defineConfig({
       url: 'http://localhost:3000/api/health',
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
+      // Desliga o agendador no servidor de E2E para evitar contenção (escritas
+      // por segundo no SQLite) que causava flakiness sob execução paralela
+      env: { SCHEDULER_DISABLED: 'true' },
     },
   ],
 })
