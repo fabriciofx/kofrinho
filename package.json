@@ -8,7 +8,7 @@
     "dev:full": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "dev:server": "cd server && npm run build && npm run start",
     "build": "tsc -b && vite build",
-    "deploy": "npm run build && rm -rf /var/www/kofrinho/* && cp -a dist/* /var/www/kofrinho",
+    "deploy": "./deploy.sh",
     "lint": "eslint .",
     "preview": "vite preview",
     "test:e2e": "playwright test",
