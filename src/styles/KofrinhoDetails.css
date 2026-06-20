@@ -340,16 +340,12 @@
 }
 
 .btn-novo-depositante {
-  width: 10px;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
   font-size: 0.875rem;
   padding: 0.45rem 1rem;
-}
-
-.depositantes-section h2 {
-  margin-top: 0;
-  color: #333;
-  font-size: 1.3rem;
-  margin-bottom: 1.25rem;
+  white-space: nowrap;
 }
 
 .depositantes-empty {
