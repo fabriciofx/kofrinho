@@ -18,6 +18,10 @@ echo -n "Deploying frontend files to $DIR/frontend... "
 npm run build && cp -a dist/. "$DIR/frontend/"
 echo "done."
 
+echo -n "Copying .env file to $DIR/frontend... "
+cp .env "$DIR/frontend/"
+echo "done."
+
 echo -n "Deploying backend files to $DIR/backend... "
 cd server && npm run build && \
   cp -a dist/. "$DIR/backend/" && \
@@ -25,6 +29,10 @@ cd server && npm run build && \
   cp package-lock.json "$DIR/backend/"
 echo "done."
 
-echo -n "Installing backend dependencies in $DIR/backend... "
+echo -n "Copying .env file to $DIR/backend... "
+cp .env "$DIR/backend/"
+echo "done."
+
+echo "Installing backend dependencies in $DIR/backend... "
 cd "$DIR/backend" && npm install --omit=dev
 echo "done."
