@@ -16,6 +16,7 @@ async function criarDepositante(page: any, kofrinhoNome: string, depositanteNome
   await page.waitForSelector('.modal-content', { timeout: 5000 })
   await page.fill('input[id="depositante-nome"]', depositanteNome)
   await page.fill('input[id="depositante-valor"]', valor)
+  await page.fill('input[id="depositante-email"]', 'delete@teste.com')
   await page.locator('.modal-content button[type="submit"]').click()
   await expect(page.locator('text=Depositante criado com sucesso')).toBeVisible({ timeout: 8000 })
   await expect(page.locator('.modal-backdrop')).not.toBeVisible({ timeout: 5000 })
@@ -127,10 +128,14 @@ test.describe('Deletar Depositante', () => {
     await page.locator('.btn-delete-depositante').first().click()
     await expect(page.locator('text=Nenhum depositante cadastrado ainda')).toBeVisible({ timeout: 5000 })
 
-    // Voltar ao dashboard e entrar em detalhes novamente
+    // Voltar ao dashboard e entrar em detalhes novamente (sem exigir a tabela,
+    // que não existe mais após remover o único depositante)
     await page.click('.btn-back')
     await page.waitForLoadState('networkidle')
-    await irParaDetalhes(page, nome)
+    await page.locator('.kofrinho-card').filter({ hasText: nome })
+      .locator('button:has-text("Ver Detalhes")').click()
+    await expect(page).toHaveURL(/\/kofrinho\/\d+/, { timeout: 5000 })
+    await page.waitForLoadState('networkidle')
 
     await expect(page.locator('text=Nenhum depositante cadastrado ainda')).toBeVisible({ timeout: 5000 })
     await expect(page.locator('.depositantes-table')).not.toBeVisible()

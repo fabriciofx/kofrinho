@@ -53,6 +53,7 @@ test.describe('Criar Depositante', () => {
 
     await page.fill('input[id="depositante-nome"]', 'Aporte Mensal')
     await page.fill('input[id="depositante-valor"]', '500')
+    await page.fill('input[id="depositante-email"]', 'aporte@teste.com')
     await page.selectOption('select[id="depositante-recorrencia"]', 'mensal')
     await page.locator('.modal-content button[type="submit"]').click()
 
@@ -68,6 +69,7 @@ test.describe('Criar Depositante', () => {
 
     await page.fill('input[id="depositante-nome"]', 'Bônus')
     await page.fill('input[id="depositante-valor"]', '200')
+    await page.fill('input[id="depositante-email"]', 'bonus@teste.com')
     await page.locator('.modal-content button[type="submit"]').click()
 
     await expect(page.locator('text=Depositante criado com sucesso')).toBeVisible({ timeout: 8000 })
@@ -94,6 +96,7 @@ test.describe('Criar Depositante', () => {
 
     await page.fill('input[id="depositante-nome"]', 'Salário')
     await page.fill('input[id="depositante-valor"]', '3000')
+    await page.fill('input[id="depositante-email"]', 'salario@teste.com')
     await page.selectOption('select[id="depositante-recorrencia"]', 'mensal')
     await page.locator('.modal-content button[type="submit"]').click()
 
@@ -121,6 +124,7 @@ test.describe('Criar Depositante', () => {
 
     await page.fill('input[id="depositante-nome"]', 'Investimento')
     await page.fill('input[id="depositante-valor"]', '1500.50')
+    await page.fill('input[id="depositante-email"]', 'investimento@teste.com')
     await page.selectOption('select[id="depositante-recorrencia"]', 'anual')
     await page.locator('.modal-content button[type="submit"]').click()
 
@@ -152,6 +156,7 @@ test.describe('Criar Depositante', () => {
       await abrirModalDepositante(page, nome)
       await page.fill('input[id="depositante-nome"]', dep.nome)
       await page.fill('input[id="depositante-valor"]', dep.valor)
+      await page.fill('input[id="depositante-email"]', `${dep.recorrencia}@teste.com`)
       await page.selectOption('select[id="depositante-recorrencia"]', dep.recorrencia)
       await page.locator('.modal-content button[type="submit"]').click()
       await expect(page.locator('text=Depositante criado com sucesso')).toBeVisible({ timeout: 8000 })
