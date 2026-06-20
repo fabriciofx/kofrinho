@@ -79,214 +79,207 @@ function KofrinhoDetails() {
     }
   }, [id, fetchSolicitacoes, selectKofrinho])
 
+  const pageHeader = (
+    <header className="details-header">
+      <h1>Kofrinho - Seu Cofre Digital</h1>
+      <button type="button" className="btn-voltar" onClick={() => navigate('/')}>
+        ← Voltar
+      </button>
+    </header>
+  )
+
   if (!id) {
     return (
-      <section id="kofrinho-details-empty">
-        <div className="empty-state">
-          <h2>Nenhum Kofrinho Selecionado</h2>
-          <p>Crie um novo kofrinho para começar</p>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => navigate('/')}
-          >
-            Voltar para Home
-          </button>
+      <div className="details-page">
+        {pageHeader}
+        <div id="kofrinho-details-empty">
+          <div className="empty-state">
+            <h2>Nenhum Kofrinho Selecionado</h2>
+            <p>Crie um novo kofrinho para começar</p>
+          </div>
         </div>
-      </section>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <section id="kofrinho-details-empty">
-        <div className="empty-state">
-          <h2>Erro ao carregar Kofrinho</h2>
-          <p>{error}</p>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => navigate('/')}
-          >
-            Voltar para Home
-          </button>
+      <div className="details-page">
+        {pageHeader}
+        <div id="kofrinho-details-empty">
+          <div className="empty-state">
+            <h2>Erro ao carregar Kofrinho</h2>
+            <p>{error}</p>
+          </div>
         </div>
-      </section>
+      </div>
     )
   }
 
   if (!selectedKofrinho && !loading) {
     return (
-      <section id="kofrinho-details-empty">
-        <div className="empty-state">
-          <h2>Kofrinho não encontrado</h2>
-          <p>Este kofrinho não existe ou foi deletado</p>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => navigate('/')}
-          >
-            Voltar para Home
-          </button>
+      <div className="details-page">
+        {pageHeader}
+        <div id="kofrinho-details-empty">
+          <div className="empty-state">
+            <h2>Kofrinho não encontrado</h2>
+            <p>Este kofrinho não existe ou foi deletado</p>
+          </div>
         </div>
-      </section>
+      </div>
     )
   }
 
   return (
-    <section id="kofrinho-details">
-      <button
-        type="button"
-        className="btn-back"
-        onClick={() => navigate('/')}
-      >
-        ← Voltar
-      </button>
+    <div className="details-page">
+      {pageHeader}
 
-      {selectedKofrinho && (
-        <header className="kofrinho-details-title">
-          <h1>{selectedKofrinho.nome}</h1>
-          {selectedKofrinho.descricao && <p>{selectedKofrinho.descricao}</p>}
-          <div className="kofrinho-details-saldo">
-            <span className="kofrinho-details-saldo-label">Saldo</span>
-            <span className="kofrinho-details-saldo-valor">
-              {selectedKofrinho.saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-            </span>
+      <section id="kofrinho-details">
+        {selectedKofrinho && (
+          <header className="kofrinho-details-title">
+            <h1>{selectedKofrinho.nome}</h1>
+            {selectedKofrinho.descricao && <p>{selectedKofrinho.descricao}</p>}
+            <div className="kofrinho-details-saldo">
+              <span className="kofrinho-details-saldo-label">Saldo</span>
+              <span className="kofrinho-details-saldo-valor">
+                {selectedKofrinho.saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </span>
+            </div>
+          </header>
+        )}
+
+        <div className="depositantes-section">
+          <div className="depositantes-section-header">
+            <h2>Depositantes</h2>
+            <button
+              type="button"
+              className="btn-primary btn-novo-depositante"
+              onClick={() => setCreatingDepositante(true)}
+            >
+              + Novo depositante
+            </button>
           </div>
-        </header>
-      )}
 
-      <div className="depositantes-section">
-        <div className="depositantes-section-header">
-          <h2>Depositantes</h2>
-          <button
-            type="button"
-            className="btn-primary btn-novo-depositante"
-            onClick={() => setCreatingDepositante(true)}
-          >
-            + Novo depositante
-          </button>
+          {depositantes.length === 0 ? (
+            <p className="depositantes-empty">Nenhum depositante cadastrado ainda.</p>
+          ) : (
+            <table className="depositantes-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Valor</th>
+                  <th>Recorrência</th>
+                  <th>E-mail</th>
+                  <th>Telefone</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {depositantes.map((d) => (
+                  <tr key={d.id}>
+                    <td>{d.nome}</td>
+                    <td>
+                      {d.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </td>
+                    <td>{RECORRENCIA_LABEL[d.recorrencia] ?? d.recorrencia}</td>
+                    <td className="depositante-contact">{d.email ?? '—'}</td>
+                    <td className="depositante-contact">{d.telefone ?? '—'}</td>
+                    <td className="depositante-actions">
+                      <button
+                        className="btn-edit-depositante"
+                        title="Editar depositante"
+                        onClick={() => setEditingDepositante(d)}
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className="btn-delete-depositante"
+                        title="Remover depositante"
+                        onClick={async () => {
+                          if (!confirm('Remover este depositante?')) return
+                          try {
+                            await deleteDepositante(selectedKofrinho!.id, d.id)
+                          } catch {
+                            /* error already set in context */
+                          }
+                        }}
+                      >
+                        🗑
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
-        {depositantes.length === 0 ? (
-          <p className="depositantes-empty">Nenhum depositante cadastrado ainda.</p>
-        ) : (
-          <table className="depositantes-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Valor</th>
-                <th>Recorrência</th>
-                <th>E-mail</th>
-                <th>Telefone</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {depositantes.map((d) => (
-                <tr key={d.id}>
-                  <td>{d.nome}</td>
-                  <td>
-                    {d.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </td>
-                  <td>{RECORRENCIA_LABEL[d.recorrencia] ?? d.recorrencia}</td>
-                  <td className="depositante-contact">{d.email ?? '—'}</td>
-                  <td className="depositante-contact">{d.telefone ?? '—'}</td>
-                  <td className="depositante-actions">
-                    <button
-                      className="btn-edit-depositante"
-                      title="Editar depositante"
-                      onClick={() => setEditingDepositante(d)}
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className="btn-delete-depositante"
-                      title="Remover depositante"
-                      onClick={async () => {
-                        if (!confirm('Remover este depositante?')) return
-                        try {
-                          await deleteDepositante(selectedKofrinho!.id, d.id)
-                        } catch {
-                          /* error already set in context */
-                        }
-                      }}
-                    >
-                      🗑
-                    </button>
-                  </td>
+        <div className="solicitacoes-section">
+          <h2>Solicitações</h2>
+
+          {solicitacoes.length === 0 ? (
+            <p className="solicitacoes-empty">Nenhuma solicitação cadastrada ainda.</p>
+          ) : (
+            <table className="solicitacoes-table">
+              <thead>
+                <tr>
+                  <th>Depositante</th>
+                  <th>Valor</th>
+                  <th>Data</th>
+                  <th>Situação</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              </thead>
+              <tbody>
+                {solicitacoes.map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.depositante_nome}</td>
+                    <td>{p.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    <td>{formatarDataBrasilia(p.criado_em)}</td>
+                    <td>
+                      <span
+                        className={`situacao-badge ${p.pago === 1 ? 'situacao-paga' : 'situacao-a-pagar'}`}
+                      >
+                        {p.pago === 1 ? 'Paga' : 'A Pagar'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
 
-      <div className="solicitacoes-section">
-        <h2>Solicitações</h2>
+        <Modal
+          isOpen={creatingDepositante}
+          onClose={() => setCreatingDepositante(false)}
+          title="Novo Depositante"
+        >
+          {selectedKofrinho && (
+            <DepositanteForm
+              kofrinhoId={selectedKofrinho.id}
+              onSuccess={() => {
+                setCreatingDepositante(false)
+                fetchDepositantes(selectedKofrinho.id)
+              }}
+            />
+          )}
+        </Modal>
 
-        {solicitacoes.length === 0 ? (
-          <p className="solicitacoes-empty">Nenhuma solicitação cadastrada ainda.</p>
-        ) : (
-          <table className="solicitacoes-table">
-            <thead>
-              <tr>
-                <th>Depositante</th>
-                <th>Valor</th>
-                <th>Data</th>
-                <th>Situação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {solicitacoes.map((p) => (
-                <tr key={p.id}>
-                  <td>{p.depositante_nome}</td>
-                  <td>{p.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                  <td>{formatarDataBrasilia(p.criado_em)}</td>
-                  <td>
-                    <span
-                      className={`situacao-badge ${p.pago === 1 ? 'situacao-paga' : 'situacao-a-pagar'}`}
-                    >
-                      {p.pago === 1 ? 'Paga' : 'A Pagar'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      <Modal
-        isOpen={creatingDepositante}
-        onClose={() => setCreatingDepositante(false)}
-        title="Novo Depositante"
-      >
-        {selectedKofrinho && (
-          <DepositanteForm
-            kofrinhoId={selectedKofrinho.id}
-            onSuccess={() => {
-              setCreatingDepositante(false)
-              fetchDepositantes(selectedKofrinho.id)
-            }}
-          />
-        )}
-      </Modal>
-
-      <Modal
-        isOpen={editingDepositante !== null}
-        onClose={() => setEditingDepositante(null)}
-        title="Editar Depositante"
-      >
-        {editingDepositante && (
-          <EditDepositanteForm
-            kofrinhoId={selectedKofrinho!.id}
-            depositante={editingDepositante}
-            onSuccess={() => setEditingDepositante(null)}
-          />
-        )}
-      </Modal>
-    </section>
+        <Modal
+          isOpen={editingDepositante !== null}
+          onClose={() => setEditingDepositante(null)}
+          title="Editar Depositante"
+        >
+          {editingDepositante && (
+            <EditDepositanteForm
+              kofrinhoId={selectedKofrinho!.id}
+              depositante={editingDepositante}
+              onSuccess={() => setEditingDepositante(null)}
+            />
+          )}
+        </Modal>
+      </section>
+    </div>
   )
 }
 
