@@ -1,0 +1,36 @@
+.datepicker {
+  position: relative;
+}
+
+.datepicker-field {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.datepicker-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.datepicker-toggle {
+  flex: 0 0 auto;
+  width: 2.6rem;
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  background: #eef2ff;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.datepicker-toggle:hover {
+  background: #e0e7ff;
+}
+
+.datepicker-popup {
+  margin-top: 0.5rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+}

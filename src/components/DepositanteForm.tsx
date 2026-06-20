@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useKofrinho } from '../context/KofrinhoContext'
-import Calendar from './Calendar'
+import DatePicker from './DatePicker'
 import '../styles/DepositanteForm.css'
 
 interface DepositanteFormProps {
@@ -126,7 +126,7 @@ function DepositanteForm({ kofrinhoId, onSuccess }: DepositanteFormProps) {
 
       <div className="form-group">
         <label>Data de início</label>
-        <Calendar
+        <DatePicker
           id="depositante-data-inicio"
           value={dataInicio}
           onChange={setDataInicio}

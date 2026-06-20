@@ -7,6 +7,15 @@ function hojeISO(): string {
   return `${d.getFullYear()}-${mm}-${dd}`
 }
 
+function isoParaBR(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+
+function hojeBR(): string {
+  return isoParaBR(hojeISO())
+}
+
 // Dia 20 do próximo mês (sempre no futuro, portanto habilitado no calendário)
 function proximoMesDia20(): string {
   const d = new Date()
@@ -31,26 +40,37 @@ async function abrirModalDepositante(page: any, kofrinhoNome: string) {
 }
 
 test.describe('Data de início da recorrência', () => {
-  test('o calendário começa com o dia de hoje, permite escolher um dia e o botão "Hoje" restaura', async ({ authenticatedPage: page }) => {
+  test('mostra a data em texto; o calendário fica escondido e abre pelo botão, preenchendo o input ao escolher', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
 
     const nome = `Kofrinho ${Date.now()}`
     await criarKofrinho(page, nome)
     await abrirModalDepositante(page, nome)
 
-    const cal = page.locator('#depositante-data-inicio')
-    await expect(cal).toBeVisible()
-    await expect(cal.locator('.calendar-grid')).toBeVisible() // é um calendário, não um campo de texto
-    await expect(cal).toHaveAttribute('data-value', hojeISO())
+    const picker = page.locator('#depositante-data-inicio')
+    const input = picker.locator('.datepicker-input')
 
-    // navega para o próximo mês e escolhe o dia 20
-    await cal.locator('button[aria-label="Próximo mês"]').click()
-    await cal.locator('.calendar-day', { hasText: /^20$/ }).click()
-    await expect(cal).toHaveAttribute('data-value', proximoMesDia20())
+    // input de texto com a data de hoje em DD/MM/AAAA; valor ISO em data-value
+    await expect(input).toHaveValue(hojeBR())
+    await expect(picker).toHaveAttribute('data-value', hojeISO())
 
-    // o botão "Hoje" volta a selecionar o dia de hoje
-    await cal.locator('.calendar-hoje').click()
-    await expect(cal).toHaveAttribute('data-value', hojeISO())
+    // o calendário começa escondido
+    await expect(picker.locator('.calendar')).toHaveCount(0)
+
+    // clicar no botão abre o calendário
+    await picker.locator('.datepicker-toggle').click()
+    await expect(picker.locator('.calendar')).toBeVisible()
+
+    // escolher o dia 20 do próximo mês preenche o input e fecha o calendário
+    await picker.locator('button[aria-label="Próximo mês"]').click()
+    await picker.locator('.calendar-day', { hasText: /^20$/ }).click()
+    await expect(input).toHaveValue(isoParaBR(proximoMesDia20()))
+    await expect(picker).toHaveAttribute('data-value', proximoMesDia20())
+    await expect(picker.locator('.calendar')).toHaveCount(0)
+
+    // digitar uma data válida no input também atualiza o valor
+    await input.fill(hojeBR())
+    await expect(picker).toHaveAttribute('data-value', hojeISO())
   })
 
   test('a dica de envio muda conforme a recorrência', async ({ authenticatedPage: page }) => {
