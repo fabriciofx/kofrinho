@@ -3,6 +3,10 @@ import { getAsync, runAsync, allAsync, runAsyncWithLastId } from '../database/db
 import { AuthRequest } from '../middleware/auth.js'
 import { Kofrinho } from '../types/index.js'
 
+// Saldo = somatório das solicitações pagas (pago = 1) do kofrinho
+const SALDO_SUBQUERY =
+  `COALESCE((SELECT SUM(s.valor) FROM solicitacoes s WHERE s.kofrinho_id = k.id AND s.pago = 1), 0) AS saldo`
+
 // Type that allows optional test database injection
 interface DbInjectedRequest extends AuthRequest {
   testDb?: any
@@ -83,7 +87,7 @@ export async function createKofrinho(req: DbInjectedRequest, res: Response) {
     )
 
     const kofrinho = await getDbAsync<Kofrinho>(req,
-      'SELECT id, nome, descricao, user_id, criado_em FROM kofrinhos WHERE id = ?',
+      `SELECT k.id, k.nome, k.descricao, k.user_id, k.criado_em, ${SALDO_SUBQUERY} FROM kofrinhos k WHERE k.id = ?`,
       [lastId]
     )
 
@@ -102,7 +106,8 @@ export async function listKofrinhos(req: DbInjectedRequest, res: Response) {
     const userId = req.userId
 
     const kofrinhos = await allDbAsync<Kofrinho>(req,
-      'SELECT id, nome, descricao, user_id, criado_em FROM kofrinhos WHERE user_id = ? ORDER BY criado_em DESC',
+      `SELECT k.id, k.nome, k.descricao, k.user_id, k.criado_em, ${SALDO_SUBQUERY}
+       FROM kofrinhos k WHERE k.user_id = ? ORDER BY k.criado_em DESC`,
       [userId]
     )
 
@@ -121,7 +126,8 @@ export async function getKofrinho(req: DbInjectedRequest, res: Response) {
     const userId = req.userId
 
     const kofrinho = await getDbAsync<Kofrinho>(req,
-      'SELECT id, nome, descricao, user_id, criado_em FROM kofrinhos WHERE id = ? AND user_id = ?',
+      `SELECT k.id, k.nome, k.descricao, k.user_id, k.criado_em, ${SALDO_SUBQUERY}
+       FROM kofrinhos k WHERE k.id = ? AND k.user_id = ?`,
       [id, userId]
     )
 
@@ -161,7 +167,7 @@ export async function updateKofrinho(req: DbInjectedRequest, res: Response) {
     )
 
     const updated = await getDbAsync<Kofrinho>(req,
-      'SELECT id, nome, descricao, user_id, criado_em FROM kofrinhos WHERE id = ?',
+      `SELECT k.id, k.nome, k.descricao, k.user_id, k.criado_em, ${SALDO_SUBQUERY} FROM kofrinhos k WHERE k.id = ?`,
       [id]
     )
 

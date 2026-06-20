@@ -147,6 +147,12 @@ export default function Home() {
                       <p className="criado-em">
                         Criado em: {new Date(kofrinho.criado_em).toLocaleDateString('pt-BR')}
                       </p>
+                      <p className="kofrinho-saldo">
+                        <span className="kofrinho-saldo-label">Saldo</span>
+                        <span className="kofrinho-saldo-valor">
+                          {kofrinho.saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                      </p>
                       <div className="card-actions">
                         <button
                           onClick={() => navigate(`/kofrinho/${kofrinho.id}`)}

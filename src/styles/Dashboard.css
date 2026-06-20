@@ -203,6 +203,33 @@
   flex-shrink: 0;
 }
 
+.kofrinho-saldo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.kofrinho-saldo-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #166534;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.kofrinho-saldo-valor {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #166534;
+}
+
 .card-actions {
   display: flex;
   flex-wrap: wrap;

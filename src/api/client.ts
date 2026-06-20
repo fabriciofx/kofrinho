@@ -26,6 +26,7 @@ export interface Kofrinho {
   descricao?: string | null
   user_id: number
   criado_em: string
+  saldo: number
 }
 
 export interface KofrinhoResponse {

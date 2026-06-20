@@ -97,6 +97,30 @@
   font-size: 1rem;
 }
 
+.kofrinho-details-saldo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+}
+
+.kofrinho-details-saldo-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+}
+
+.kofrinho-details-saldo-valor {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;

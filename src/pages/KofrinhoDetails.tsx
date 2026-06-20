@@ -145,6 +145,12 @@ function KofrinhoDetails() {
         <header className="kofrinho-details-title">
           <h1>{selectedKofrinho.nome}</h1>
           {selectedKofrinho.descricao && <p>{selectedKofrinho.descricao}</p>}
+          <div className="kofrinho-details-saldo">
+            <span className="kofrinho-details-saldo-label">Saldo</span>
+            <span className="kofrinho-details-saldo-valor">
+              {selectedKofrinho.saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </span>
+          </div>
         </header>
       )}
 

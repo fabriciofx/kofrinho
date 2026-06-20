@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import request from 'supertest'
 import { setupTestDb, closeTestDb, runAsync } from '../setup/database.js'
 import { startTestServer, stopTestServer, TestServerSetup } from '../setup/testServer.js'
@@ -385,6 +386,112 @@ describe('Kofrinho CRUD Operations', () => {
         .set('Authorization', `Bearer ${registerRes.body.token}`)
 
       expect(response.status).toBe(404)
+    })
+  })
+
+  // ─── Saldo (somatório das solicitações pagas) ────────────────────────────────
+
+  describe('Saldo (somatório das solicitações pagas)', () => {
+    async function criarKofrinhoComDepositante(): Promise<{ kofrinhoId: number; depositanteId: number }> {
+      const kRes = await request(testServer.app)
+        .post('/api/kofrinhos')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: `Saldo ${randomUUID()}` })
+      const kofrinhoId = kRes.body.kofrinho.id
+
+      const dRes = await request(testServer.app)
+        .post(`/api/kofrinhos/${kofrinhoId}/depositantes`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Dep Saldo', valor: 100, recorrencia: 'mensal', email: 'depsaldo@teste.com' })
+      return { kofrinhoId, depositanteId: dRes.body.depositante.id }
+    }
+
+    async function inserirSolicitacao(kofrinhoId: number, depositanteId: number, valor: number, pago: number) {
+      await runAsync(testDb,
+        'INSERT INTO solicitacoes (solicitacao_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, ?)',
+        [randomUUID(), kofrinhoId, depositanteId, valor, pago]
+      )
+    }
+
+    test('kofrinho recém-criado tem saldo 0', async () => {
+      const kRes = await request(testServer.app)
+        .post('/api/kofrinhos')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ nome: 'Sem solicitações' })
+      expect(kRes.body.kofrinho.saldo).toBe(0)
+
+      const getRes = await request(testServer.app)
+        .get(`/api/kofrinhos/${kRes.body.kofrinho.id}`)
+        .set('Authorization', `Bearer ${validToken}`)
+      expect(getRes.body.kofrinho.saldo).toBe(0)
+    })
+
+    test('solicitações não pagas (pago=0) não entram no saldo', async () => {
+      const { kofrinhoId, depositanteId } = await criarKofrinhoComDepositante()
+      await inserirSolicitacao(kofrinhoId, depositanteId, 500, 0)
+      await inserirSolicitacao(kofrinhoId, depositanteId, 300, 0)
+
+      const res = await request(testServer.app)
+        .get(`/api/kofrinhos/${kofrinhoId}`)
+        .set('Authorization', `Bearer ${validToken}`)
+      expect(res.body.kofrinho.saldo).toBe(0)
+    })
+
+    test('saldo é o somatório das solicitações pagas (pago=1)', async () => {
+      const { kofrinhoId, depositanteId } = await criarKofrinhoComDepositante()
+      await inserirSolicitacao(kofrinhoId, depositanteId, 100, 1)
+      await inserirSolicitacao(kofrinhoId, depositanteId, 250.5, 1)
+      await inserirSolicitacao(kofrinhoId, depositanteId, 999, 0) // não paga: ignorada
+
+      const res = await request(testServer.app)
+        .get(`/api/kofrinhos/${kofrinhoId}`)
+        .set('Authorization', `Bearer ${validToken}`)
+      expect(res.body.kofrinho.saldo).toBe(350.5)
+    })
+
+    test('o saldo aparece na listagem GET /kofrinhos', async () => {
+      const { kofrinhoId, depositanteId } = await criarKofrinhoComDepositante()
+      await inserirSolicitacao(kofrinhoId, depositanteId, 75, 1)
+      await inserirSolicitacao(kofrinhoId, depositanteId, 25, 1)
+
+      const res = await request(testServer.app)
+        .get('/api/kofrinhos')
+        .set('Authorization', `Bearer ${validToken}`)
+      const kof = res.body.kofrinhos.find((k: any) => k.id === kofrinhoId)
+      expect(kof.saldo).toBe(100)
+    })
+
+    test('o saldo de um kofrinho não inclui solicitações de outro', async () => {
+      const a = await criarKofrinhoComDepositante()
+      const b = await criarKofrinhoComDepositante()
+      await inserirSolicitacao(a.kofrinhoId, a.depositanteId, 1000, 1)
+      await inserirSolicitacao(b.kofrinhoId, b.depositanteId, 40, 1)
+
+      const resA = await request(testServer.app).get(`/api/kofrinhos/${a.kofrinhoId}`).set('Authorization', `Bearer ${validToken}`)
+      const resB = await request(testServer.app).get(`/api/kofrinhos/${b.kofrinhoId}`).set('Authorization', `Bearer ${validToken}`)
+      expect(resA.body.kofrinho.saldo).toBe(1000)
+      expect(resB.body.kofrinho.saldo).toBe(40)
+    })
+
+    test('confirmar uma solicitação via webhook passa a contar no saldo', async () => {
+      const { kofrinhoId, depositanteId } = await criarKofrinhoComDepositante()
+      const solicitacaoId = randomUUID()
+      await runAsync(testDb,
+        'INSERT INTO solicitacoes (solicitacao_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, 0)',
+        [solicitacaoId, kofrinhoId, depositanteId, 200]
+      )
+
+      // antes da confirmação: saldo 0 (solicitação ainda pago=0)
+      const antes = await request(testServer.app)
+        .get(`/api/kofrinhos/${kofrinhoId}`).set('Authorization', `Bearer ${validToken}`)
+      expect(antes.body.kofrinho.saldo).toBe(0)
+
+      // confirma o pagamento via webhook público
+      await request(testServer.app).post(`/api/solicitacoes/${solicitacaoId}`)
+
+      const depois = await request(testServer.app)
+        .get(`/api/kofrinhos/${kofrinhoId}`).set('Authorization', `Bearer ${validToken}`)
+      expect(depois.body.kofrinho.saldo).toBe(200)
     })
   })
 })
