@@ -18,8 +18,8 @@ test.describe('Botão Novo Depositante', () => {
     const nome = `Kofrinho ${Date.now()}`
     await criarKofrinhoENavegar(page, nome)
 
-    // A página deve exibir as seções principais sem crash
-    await expect(page.locator('h2:has-text("Informações do Kofrinho")')).toBeVisible()
+    // A página deve exibir o título e as seções principais sem crash
+    await expect(page.locator('.kofrinho-details-title h1')).toHaveText(nome)
     await expect(page.locator('h2:has-text("Depositantes")')).toBeVisible()
     await expect(page.locator('h2:has-text("Solicitações")')).toBeVisible()
 

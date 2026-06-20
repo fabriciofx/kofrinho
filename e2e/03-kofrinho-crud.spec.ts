@@ -1,183 +1,124 @@
 import { test, expect } from './fixtures'
 
+// Abre o modal "Criar novo Kofrinho", preenche e cria; aguarda o card aparecer.
+async function criarKofrinho(page: any, nome: string, descricao?: string) {
+  await page.click('button:has-text("Criar novo Kofrinho")')
+  await page.waitForSelector('.modal-content', { timeout: 5000 })
+  await page.fill('.modal-content input[id="nome"]', nome)
+  if (descricao) await page.fill('.modal-content textarea[id="descricao"]', descricao)
+  await page.click('.modal-content button:has-text("Criar Kofrinho")')
+  await expect(
+    page.locator('.kofrinho-card').filter({ hasText: nome })
+  ).toBeVisible({ timeout: 8000 })
+}
+
 test.describe('Kofrinho CRUD Operations', () => {
-  test('should create new kofrinho', async ({ authenticatedPage: page }) => {
-    // Wait for dashboard to fully load
+  test('cria um novo kofrinho via modal', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
-    
-    // Scroll to form
-    await page.locator('text=Criar Novo Kofrinho').scrollIntoViewIfNeeded()
-    
-    // Fill form
-    await page.fill('input[id="nome"]', 'Meu Primeiro Kofrinho')
-    await page.fill('textarea[id="descricao"]', 'Um kofrinho para poupar')
-    
-    // Submit
-    await page.click('button:has-text("Criar Kofrinho")')
-    
-    // Wait for success and kofrinho to appear
-    await page.waitForTimeout(1000)
-    
-    // Verify kofrinho appears in list
-    await expect(page.locator('text=Meu Primeiro Kofrinho')).toBeVisible({ timeout: 5000 })
+
+    const nome = `Meu Kofrinho ${Date.now()}`
+    await criarKofrinho(page, nome, 'Um kofrinho para poupar')
+
+    await expect(page.locator('.kofrinho-card').filter({ hasText: nome })).toBeVisible()
   })
 
-  test('should list all kofrinhos', async ({ authenticatedPage: page }) => {
+  test('lista todos os kofrinhos criados', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
-    
-    // Create first kofrinho
-    await page.locator('text=Criar Novo Kofrinho').scrollIntoViewIfNeeded()
-    await page.fill('input[id="nome"]', 'Kofrinho 1')
-    await page.fill('textarea[id="descricao"]', 'Primeiro')
-    await page.click('button:has-text("Criar Kofrinho")')
-    await page.waitForTimeout(1000)
 
-    // Create second kofrinho
-    await page.fill('input[id="nome"]', 'Kofrinho 2')
-    await page.fill('textarea[id="descricao"]', 'Segundo')
-    await page.click('button:has-text("Criar Kofrinho")')
-    await page.waitForTimeout(1000)
+    const nome1 = `Kofrinho 1 ${Date.now()}`
+    const nome2 = `Kofrinho 2 ${Date.now()}`
+    await criarKofrinho(page, nome1, 'Primeiro')
+    await criarKofrinho(page, nome2, 'Segundo')
 
-    // Verify both appear
-    await expect(page.locator('text=Kofrinho 1')).toBeVisible({ timeout: 5000 })
-    await expect(page.locator('text=Kofrinho 2')).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('.kofrinho-card').filter({ hasText: nome1 })).toBeVisible()
+    await expect(page.locator('.kofrinho-card').filter({ hasText: nome2 })).toBeVisible()
   })
 
-  test('should view kofrinho details', async ({ authenticatedPage: page }) => {
+  test('abre os detalhes do kofrinho', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
-    
-    // Create kofrinho
-    await page.locator('text=Criar Novo Kofrinho').scrollIntoViewIfNeeded()
-    await page.fill('input[id="nome"]', 'Test Kofrinho')
-    await page.fill('textarea[id="descricao"]', 'Test Description')
-    await page.click('button:has-text("Criar Kofrinho")')
-    await page.waitForTimeout(1000)
 
-    // Click Ver Detalhes
-    await page.click('button:has-text("Ver Detalhes")')
-    
-    // Wait for details page
-    await page.waitForSelector('text=Informações do Kofrinho', { timeout: 10000 })
-    
-    // Verify details shown
-    await expect(page.locator('text=Test Kofrinho')).toBeVisible({ timeout: 5000 })
-    await expect(page.locator('text=Test Description')).toBeVisible({ timeout: 5000 })
+    const nome = `Detalhes ${Date.now()}`
+    const desc = 'Descrição de teste'
+    await criarKofrinho(page, nome, desc)
+
+    await page.locator('.kofrinho-card').filter({ hasText: nome })
+      .locator('button:has-text("Ver Detalhes")').click()
+    await page.waitForURL(/\/kofrinho\/\d+/, { timeout: 8000 })
+
+    // O container "Informações do Kofrinho" foi removido; a página exibe o nome como título
+    await expect(page.locator('.kofrinho-details-title h1')).toHaveText(nome, { timeout: 10000 })
+    await expect(page.locator('.kofrinho-details-title')).toContainText(desc)
   })
 
-  test('should edit kofrinho', async ({ authenticatedPage: page }) => {
+  test('edita um kofrinho pelo ícone no card', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
-    
-    // Create kofrinho
-    await page.locator('text=Criar Novo Kofrinho').scrollIntoViewIfNeeded()
-    await page.fill('input[id="nome"]', 'Original Name')
-    await page.fill('textarea[id="descricao"]', 'Original Description')
-    await page.click('button:has-text("Criar Kofrinho")')
-    await page.waitForTimeout(1000)
 
-    // Go to details
-    await page.click('button:has-text("Ver Detalhes")')
-    await page.waitForSelector('text=Informações do Kofrinho', { timeout: 10000 })
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(800)
+    const nome = `Original ${Date.now()}`
+    const novoNome = `Atualizado ${Date.now()}`
+    await criarKofrinho(page, nome, 'Descrição original')
 
-    // Click Editar with force to bypass detachment issues
-    await page.click('button:has-text("Editar")', { force: true })
-    
-    // Wait for edit form
-    await page.waitForSelector('input[id="nome"]', { timeout: 5000 })
+    // Clica no ícone de editar do card
+    await page.locator('.kofrinho-card').filter({ hasText: nome })
+      .locator('.btn-icon-edit-card').click()
+    await page.waitForSelector('.modal-content', { timeout: 5000 })
+    await expect(page.locator('.modal-content h2:has-text("Editar Kofrinho")')).toBeVisible()
 
-    // Edit
-    await page.fill('input[id="nome"]', 'Updated Name')
-    await page.fill('textarea[id="descricao"]', 'Updated Description')
-    
-    // Save
-    await page.click('button:has-text("Salvar")')
-    
-    // Wait for save
-    await page.waitForTimeout(1000)
-    
-    // Verify updated
-    await expect(page.locator('text=Updated Name')).toBeVisible({ timeout: 5000 })
-    await expect(page.locator('text=Updated Description')).toBeVisible({ timeout: 5000 })
+    await page.fill('.modal-content input[id="edit-kofrinho-nome"]', novoNome)
+    await page.fill('.modal-content textarea[id="edit-kofrinho-descricao"]', 'Descrição nova')
+    await page.click('.modal-content button:has-text("Salvar Alterações")')
+
+    // O card reflete o novo nome e o antigo some
+    await expect(page.locator('.kofrinho-card').filter({ hasText: novoNome })).toBeVisible({ timeout: 8000 })
+    await expect(page.locator('.kofrinho-card').filter({ hasText: nome })).toHaveCount(0)
   })
 
-  test('should delete kofrinho', async ({ authenticatedPage: page }) => {
+  test('deleta um kofrinho pelo card', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
-    
-    // Create kofrinho
-    await page.locator('text=Criar Novo Kofrinho').scrollIntoViewIfNeeded()
-    await page.fill('input[id="nome"]', 'Kofrinho to Delete')
-    await page.fill('textarea[id="descricao"]', 'Will be deleted')
-    await page.click('button:has-text("Criar Kofrinho")')
-    await page.waitForTimeout(1000)
 
-    // Go to details
-    await page.click('button:has-text("Ver Detalhes")')
-    await page.waitForSelector('text=Informações do Kofrinho', { timeout: 10000 })
+    const nome = `Para Deletar ${Date.now()}`
+    await criarKofrinho(page, nome, 'Será deletado')
 
-    // Delete (confirm dialog)
-    page.once('dialog', dialog => dialog.accept())
-    await page.click('button:has-text("Deletar")')
-    
-    // Wait for deletion and redirect
-    await page.waitForTimeout(2500)
-    
-    // Verify back on home
-    await expect(page.locator('text=Meus Kofrinhos')).toBeVisible({ timeout: 5000 })
+    page.once('dialog', (dialog: any) => dialog.accept())
+    await page.locator('.kofrinho-card').filter({ hasText: nome })
+      .locator('button:has-text("Deletar")').click()
+
+    await expect(page.locator('.kofrinho-card').filter({ hasText: nome })).toHaveCount(0, { timeout: 8000 })
   })
 
-  test('should show error on missing kofrinho name', async ({ authenticatedPage: page }) => {
+  test('não cria kofrinho com nome vazio', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
-    
-    // Try to create without name
-    await page.locator('text=Criar Novo Kofrinho').scrollIntoViewIfNeeded()
-    
-    // Leave name empty and try to submit
-    await page.fill('textarea[id="descricao"]', 'Description only')
-    
-    // Click create (should not submit due to required field)
-    const button = page.locator('button:has-text("Criar Kofrinho")')
-    
-    // Check if button is disabled or if browser validation prevents submit
-    const isDisabled = await button.isDisabled()
-    
-    // Either button is disabled or submission is prevented
-    await expect(isDisabled || true).toBeTruthy()
+
+    await page.click('button:has-text("Criar novo Kofrinho")')
+    await page.waitForSelector('.modal-content', { timeout: 5000 })
+
+    // Deixa o nome vazio e tenta submeter — campo required impede o envio
+    await page.fill('.modal-content textarea[id="descricao"]', 'Apenas descrição')
+    await page.click('.modal-content button:has-text("Criar Kofrinho")')
+
+    // O modal continua aberto (não houve criação)
+    await expect(page.locator('.modal-content input[id="nome"]')).toBeVisible()
+    const nomeInvalido = await page.locator('.modal-content input[id="nome"]')
+      .evaluate((el: HTMLInputElement) => !el.validity.valid)
+    expect(nomeInvalido).toBe(true)
   })
 
-  test('should cancel edit and revert changes', async ({ authenticatedPage: page }) => {
+  test('cancela a edição fechando o modal sem salvar', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
-    
-    // Create kofrinho
-    await page.locator('text=Criar Novo Kofrinho').scrollIntoViewIfNeeded()
-    await page.fill('input[id="nome"]', 'Original')
-    await page.fill('textarea[id="descricao"]', 'Original Desc')
-    await page.click('button:has-text("Criar Kofrinho")')
-    await page.waitForTimeout(1000)
 
-    // Go to details
-    await page.click('button:has-text("Ver Detalhes")')
-    await page.waitForSelector('text=Informações do Kofrinho', { timeout: 10000 })
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(800)
+    const nome = `Imutável ${Date.now()}`
+    await criarKofrinho(page, nome, 'Descrição original')
 
-    // Click Editar with force
-    await page.click('button:has-text("Editar")', { force: true })
-    
-    await page.waitForSelector('input[id="nome"]', { timeout: 5000 })
+    await page.locator('.kofrinho-card').filter({ hasText: nome })
+      .locator('.btn-icon-edit-card').click()
+    await page.waitForSelector('.modal-content', { timeout: 5000 })
 
-    // Change fields
-    await page.fill('input[id="nome"]', 'Changed')
-    await page.fill('textarea[id="descricao"]', 'Changed Desc')
-    
-    // Click Cancel
-    await page.click('button:has-text("Cancelar")')
-    
-    // Wait for revert
-    await page.waitForTimeout(500)
-    
-    // Verify original values restored
-    await expect(page.locator('text=Original')).toBeVisible({ timeout: 5000 })
-    await expect(page.locator('text=Original Desc')).toBeVisible({ timeout: 5000 })
+    // Altera os campos mas fecha pelo X em vez de salvar
+    await page.fill('.modal-content input[id="edit-kofrinho-nome"]', 'Não deve persistir')
+    await page.click('.modal-close-btn')
+    await expect(page.locator('.modal-content')).toBeHidden({ timeout: 3000 })
+
+    // O card mantém o nome original
+    await expect(page.locator('.kofrinho-card').filter({ hasText: nome })).toBeVisible()
+    await expect(page.locator('.kofrinho-card').filter({ hasText: 'Não deve persistir' })).toHaveCount(0)
   })
 })

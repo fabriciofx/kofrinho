@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useKofrinho } from '../context/KofrinhoContext'
+import { useKofrinho, type Kofrinho } from '../context/KofrinhoContext'
 import { AvatarUpload } from '../components/AvatarUpload'
 import KofrinhoForm from '../components/KofrinhoForm'
+import EditKofrinhoForm from '../components/EditKofrinhoForm'
 import DepositanteForm from '../components/DepositanteForm'
 import { Modal } from '../components/Modal'
 import '../styles/Auth.css'
@@ -22,6 +23,7 @@ export default function Home() {
   const [message, setMessage] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [depositanteKofrinhoId, setDepositanteKofrinhoId] = useState<number | null>(null)
+  const [editingKofrinho, setEditingKofrinho] = useState<Kofrinho | null>(null)
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -130,7 +132,17 @@ export default function Home() {
                 <div className="kofrinhos-grid">
                   {kofrinhos.map(kofrinho => (
                     <div key={kofrinho.id} className="kofrinho-card">
-                      <h3>{kofrinho.nome}</h3>
+                      <div className="kofrinho-card-top">
+                        <h3>{kofrinho.nome}</h3>
+                        <button
+                          type="button"
+                          className="btn-icon-edit-card"
+                          title="Editar kofrinho"
+                          onClick={() => setEditingKofrinho(kofrinho)}
+                        >
+                          ✏️
+                        </button>
+                      </div>
                       {kofrinho.descricao && <p className="descricao">{kofrinho.descricao}</p>}
                       <p className="criado-em">
                         Criado em: {new Date(kofrinho.criado_em).toLocaleDateString('pt-BR')}
@@ -167,6 +179,19 @@ export default function Home() {
               title="Criar novo Kofrinho"
             >
               <KofrinhoForm isModal={true} onSuccess={() => setIsModalOpen(false)} />
+            </Modal>
+
+            <Modal
+              isOpen={editingKofrinho !== null}
+              onClose={() => setEditingKofrinho(null)}
+              title="Editar Kofrinho"
+            >
+              {editingKofrinho && (
+                <EditKofrinhoForm
+                  kofrinho={editingKofrinho}
+                  onSuccess={() => setEditingKofrinho(null)}
+                />
+              )}
             </Modal>
 
             <Modal

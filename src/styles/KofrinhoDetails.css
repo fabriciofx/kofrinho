@@ -79,59 +79,22 @@
   transform: translateX(-4px);
 }
 
-.kofrinho-info-card {
-  background: white;
-  border-radius: 12px;
-  padding: 0.4rem 0.75rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  align-self: center;
+.kofrinho-details-title {
+  text-align: center;
+  color: white;
   margin-bottom: 1.5rem;
 }
 
-.kofrinho-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.35rem;
-}
-
-.kofrinho-info-card h2 {
+.kofrinho-details-title h1 {
   margin: 0;
-  color: #333;
-  font-size: 1.1rem;
+  color: white;
+  font-size: 1.8rem;
 }
 
-.kofrinho-card-icons {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.btn-icon-kofrinho {
-  background: none;
-  border: none;
-  cursor: pointer;
+.kofrinho-details-title p {
+  margin: 0.4rem 0 0;
+  opacity: 0.9;
   font-size: 1rem;
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  opacity: 0.5;
-  transition: opacity 0.2s ease, background 0.2s ease;
-  line-height: 1;
-}
-
-.btn-icon-kofrinho:hover:not(:disabled) {
-  opacity: 1;
-}
-
-.btn-icon-kofrinho.btn-icon-edit:hover:not(:disabled) {
-  background: #dbeafe;
-}
-
-.btn-icon-kofrinho.btn-icon-delete:hover:not(:disabled) {
-  background: #fee2e2;
-}
-
-.btn-icon-kofrinho:disabled {
-  cursor: not-allowed;
 }
 
 .form-group {
@@ -162,36 +125,6 @@
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.kofrinho-info-row {
-  display: flex;
-  gap: 1.5rem;
-  align-items: flex-start;
-}
-
-.kofrinho-info-col {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 0;
-}
-
-.info-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #888;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.info-value {
-  font-size: 0.9rem;
-  color: #333;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .action-buttons {
@@ -512,16 +445,6 @@
 @media (max-width: 768px) {
   #kofrinho-details {
     padding: 1rem;
-  }
-
-  .kofrinho-info-card {
-    padding: 1.5rem;
-  }
-
-  .kofrinho-info-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
   }
 
   .action-buttons {

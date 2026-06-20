@@ -24,11 +24,7 @@ function formatarDataBrasilia(data: string): string {
 function KofrinhoDetails() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
-  const { selectedKofrinho, depositantes, solicitacoes, loading, error, selectKofrinho, updateKofrinho, deleteKofrinho, fetchDepositantes, deleteDepositante, fetchSolicitacoes } = useKofrinho()
-  const [descricao, setDescricao] = useState('')
-  const [nome, setNome] = useState('')
-  const [mensagem, setMensagem] = useState('')
-  const [isEditing, setIsEditing] = useState(false)
+  const { selectedKofrinho, depositantes, solicitacoes, loading, error, selectKofrinho, fetchDepositantes, deleteDepositante, fetchSolicitacoes } = useKofrinho()
   const [editingDepositante, setEditingDepositante] = useState<Depositante | null>(null)
   const [creatingDepositante, setCreatingDepositante] = useState(false)
 
@@ -80,13 +76,6 @@ function KofrinhoDetails() {
       clearTimeout(reconnectTimeout)
     }
   }, [id, fetchSolicitacoes])
-
-  useEffect(() => {
-    if (selectedKofrinho) {
-      setNome(selectedKofrinho.nome)
-      setDescricao(selectedKofrinho.descricao || '')
-    }
-  }, [selectedKofrinho])
 
   if (!id) {
     return (
@@ -142,39 +131,6 @@ function KofrinhoDetails() {
     )
   }
 
-  const handleSave = async () => {
-    if (!selectedKofrinho) return
-    setMensagem('')
-    try {
-      await updateKofrinho(selectedKofrinho.id, nome, descricao)
-      setMensagem('Kofrinho atualizado com sucesso!')
-      setIsEditing(false)
-    } catch (err) {
-      setMensagem(err instanceof Error ? err.message : 'Erro ao atualizar kofrinho')
-    }
-  }
-
-  const handleDelete = async () => {
-    if (!selectedKofrinho) return
-    if (!confirm('Tem certeza que deseja deletar este kofrinho?')) return
-
-    setMensagem('')
-    try {
-      await deleteKofrinho(selectedKofrinho.id)
-      setMensagem('Kofrinho deletado com sucesso!')
-      setTimeout(() => navigate('/'), 2000)
-    } catch (err) {
-      setMensagem(err instanceof Error ? err.message : 'Erro ao deletar kofrinho')
-    }
-  }
-
-  const handleCancel = () => {
-    if (!selectedKofrinho) return
-    setIsEditing(false)
-    setNome(selectedKofrinho.nome)
-    setDescricao(selectedKofrinho.descricao || '')
-  }
-
   return (
     <section id="kofrinho-details">
       <button
@@ -185,110 +141,11 @@ function KofrinhoDetails() {
         ← Voltar
       </button>
 
-      <div className="kofrinho-info-card">
-        <div className="kofrinho-card-header">
-          <h2>Informações do Kofrinho</h2>
-          {!isEditing && selectedKofrinho && (
-            <div className="kofrinho-card-icons">
-              <button
-                type="button"
-                className="btn-icon-kofrinho btn-icon-edit"
-                title="Editar kofrinho"
-                onClick={() => setIsEditing(true)}
-              >
-                ✏️
-              </button>
-              <button
-                type="button"
-                className="btn-icon-kofrinho btn-icon-delete"
-                title="Deletar kofrinho"
-                onClick={handleDelete}
-                disabled={loading}
-              >
-                🗑
-              </button>
-            </div>
-          )}
-        </div>
-
-        {loading ? (
-          <div className="loading-state">
-            <p>Carregando informações do kofrinho...</p>
-          </div>
-        ) : !selectedKofrinho ? (
-          <div className="empty-state">
-            <p>Nenhum kofrinho selecionado</p>
-          </div>
-        ) : isEditing ? (
-          <>
-            <div className="form-group">
-              <label htmlFor="nome">Nome</label>
-              <input
-                id="nome"
-                type="text"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                placeholder="Nome do kofrinho"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="descricao">Descrição</label>
-              <textarea
-                id="descricao"
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                placeholder="Descrição (opcional)"
-                rows={3}
-              />
-            </div>
-
-            <div className="action-buttons">
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleSave}
-                disabled={loading}
-              >
-                {loading ? 'Salvando...' : 'Salvar'}
-              </button>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={handleCancel}
-                disabled={loading}
-              >
-                Cancelar
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="kofrinho-info-row">
-            <div className="kofrinho-info-col">
-              <span className="info-label">Nome</span>
-              <span className="info-value">{selectedKofrinho!.nome}</span>
-            </div>
-            {selectedKofrinho!.descricao && (
-              <div className="kofrinho-info-col">
-                <span className="info-label">Descrição</span>
-                <span className="info-value">{selectedKofrinho!.descricao}</span>
-              </div>
-            )}
-            <div className="kofrinho-info-col">
-              <span className="info-label">Criado em</span>
-              <span className="info-value">
-                {new Date(selectedKofrinho!.criado_em).toLocaleDateString('pt-BR')}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {mensagem && (
-        <div className={`mensagem ${mensagem.includes('sucesso') ? 'sucesso' : 'erro'}`}>
-          {mensagem}
-        </div>
+      {selectedKofrinho && (
+        <header className="kofrinho-details-title">
+          <h1>{selectedKofrinho.nome}</h1>
+          {selectedKofrinho.descricao && <p>{selectedKofrinho.descricao}</p>}
+        </header>
       )}
 
       <div className="depositantes-section">
