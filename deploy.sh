@@ -19,5 +19,5 @@ npm run build && cp -a dist/. "$DIR/frontend/"
 echo "done."
 
 echo -n "Deploying backend files to $DIR/backend... "
-cd server && npm run build && cp -a build/. "$DIR/backend/"
+cd server && npm run build && cp -a dist/. "$DIR/backend/"
 echo "done."
