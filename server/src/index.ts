@@ -3,6 +3,10 @@ import express from 'express'
 import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json') as { version: string }
 import { initializeDatabase } from './database/init.js'
 import { iniciarAgendador } from './services/schedulerService.js'
 import authRoutes from './routes/authRoutes.js'
@@ -35,8 +39,12 @@ app.use('/api/avatars', avatarRoutes)
 
 app.use('/api/avatars', express.static(path.join(__dirname, '../uploads/avatars')))
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', message: 'Server running on port 3000' })
+})
+
+app.get('/api/version', (_req, res) => {
+  res.json({ version })
 })
 
 // Webhook Confrapix: confirma solicitação (sem auth)
