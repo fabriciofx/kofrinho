@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useKofrinho } from '../context/KofrinhoContext'
+import Calendar from './Calendar'
 import '../styles/DepositanteForm.css'
 
 interface DepositanteFormProps {
@@ -124,24 +125,13 @@ function DepositanteForm({ kofrinhoId, onSuccess }: DepositanteFormProps) {
       </div>
 
       <div className="form-group">
-        <label htmlFor="depositante-data-inicio">Data de início</label>
-        <div className="data-inicio-row">
-          <input
-            id="depositante-data-inicio"
-            type="date"
-            min={hojeISO()}
-            value={dataInicio}
-            onChange={(e) => setDataInicio(e.target.value)}
-            required
-          />
-          <button
-            type="button"
-            className="btn-hoje"
-            onClick={() => setDataInicio(hojeISO())}
-          >
-            Hoje
-          </button>
-        </div>
+        <label>Data de início</label>
+        <Calendar
+          id="depositante-data-inicio"
+          value={dataInicio}
+          onChange={setDataInicio}
+          min={hojeISO()}
+        />
         <small className="data-inicio-hint">{dicaRecorrencia(recorrencia, dataInicio)}</small>
       </div>
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useKofrinho, type Depositante } from '../context/KofrinhoContext'
 import { hojeISO, dicaRecorrencia } from './DepositanteForm'
+import Calendar from './Calendar'
 import '../styles/DepositanteForm.css'
 
 const RECORRENCIAS = [
@@ -92,23 +93,12 @@ function EditDepositanteForm({ kofrinhoId, depositante, onSuccess }: EditDeposit
       </div>
 
       <div className="form-group">
-        <label htmlFor="edit-depositante-data-inicio">Data de início</label>
-        <div className="data-inicio-row">
-          <input
-            id="edit-depositante-data-inicio"
-            type="date"
-            value={dataInicio}
-            onChange={(e) => setDataInicio(e.target.value)}
-            required
-          />
-          <button
-            type="button"
-            className="btn-hoje"
-            onClick={() => setDataInicio(hojeISO())}
-          >
-            Hoje
-          </button>
-        </div>
+        <label>Data de início</label>
+        <Calendar
+          id="edit-depositante-data-inicio"
+          value={dataInicio}
+          onChange={setDataInicio}
+        />
         <small className="data-inicio-hint">{dicaRecorrencia(recorrencia, dataInicio)}</small>
       </div>
 

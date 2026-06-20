@@ -7,6 +7,15 @@ function hojeISO(): string {
   return `${d.getFullYear()}-${mm}-${dd}`
 }
 
+// Dia 20 do próximo mês (sempre no futuro, portanto habilitado no calendário)
+function proximoMesDia20(): string {
+  const d = new Date()
+  let y = d.getFullYear()
+  let m = d.getMonth() + 2 // próximo mês (1-based)
+  if (m === 13) { m = 1; y++ }
+  return `${y}-${String(m).padStart(2, '0')}-20`
+}
+
 async function criarKofrinho(page: any, nome: string) {
   await page.click('button:has-text("Criar novo Kofrinho")')
   await page.waitForSelector('.modal-content', { timeout: 5000 })
@@ -22,22 +31,26 @@ async function abrirModalDepositante(page: any, kofrinhoNome: string) {
 }
 
 test.describe('Data de início da recorrência', () => {
-  test('o formulário tem campo de data com o dia de hoje e botão "Hoje"', async ({ authenticatedPage: page }) => {
+  test('o calendário começa com o dia de hoje, permite escolher um dia e o botão "Hoje" restaura', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
 
     const nome = `Kofrinho ${Date.now()}`
     await criarKofrinho(page, nome)
     await abrirModalDepositante(page, nome)
 
-    const dateInput = page.locator('input[id="depositante-data-inicio"]')
-    await expect(dateInput).toBeVisible()
-    await expect(dateInput).toHaveValue(hojeISO())
+    const cal = page.locator('#depositante-data-inicio')
+    await expect(cal).toBeVisible()
+    await expect(cal.locator('.calendar-grid')).toBeVisible() // é um calendário, não um campo de texto
+    await expect(cal).toHaveAttribute('data-value', hojeISO())
 
-    // muda a data e o botão "Hoje" restaura para o dia de hoje
-    await dateInput.fill('2099-12-31')
-    await expect(dateInput).toHaveValue('2099-12-31')
-    await page.locator('.modal-content button:has-text("Hoje")').click()
-    await expect(dateInput).toHaveValue(hojeISO())
+    // navega para o próximo mês e escolhe o dia 20
+    await cal.locator('button[aria-label="Próximo mês"]').click()
+    await cal.locator('.calendar-day', { hasText: /^20$/ }).click()
+    await expect(cal).toHaveAttribute('data-value', proximoMesDia20())
+
+    // o botão "Hoje" volta a selecionar o dia de hoje
+    await cal.locator('.calendar-hoje').click()
+    await expect(cal).toHaveAttribute('data-value', hojeISO())
   })
 
   test('a dica de envio muda conforme a recorrência', async ({ authenticatedPage: page }) => {
@@ -66,8 +79,8 @@ test.describe('Data de início da recorrência', () => {
     await page.fill('input[id="depositante-nome"]', 'Envio Hoje')
     await page.fill('input[id="depositante-valor"]', '300')
     await page.selectOption('select[id="depositante-recorrencia"]', 'mensal')
-    // a data de início já vem preenchida com hoje
-    await expect(page.locator('input[id="depositante-data-inicio"]')).toHaveValue(hojeISO())
+    // a data de início já vem com hoje selecionado no calendário
+    await expect(page.locator('#depositante-data-inicio')).toHaveAttribute('data-value', hojeISO())
     await page.fill('input[id="depositante-email"]', 'envio.hoje@teste.com')
     await page.locator('.modal-content button[type="submit"]').click()
 
