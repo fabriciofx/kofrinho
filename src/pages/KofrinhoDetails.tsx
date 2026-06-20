@@ -36,7 +36,7 @@ function KofrinhoDetails() {
     }
   }, [id, selectKofrinho, fetchDepositantes, fetchSolicitacoes])
 
-  // SSE: atualiza "Solicitações" em tempo real quando uma solicitação é confirmada
+  // SSE: atualiza "Solicitações" e o saldo em tempo real quando uma solicitação muda
   useEffect(() => {
     if (!id) return
     const kofrinhoId = parseInt(id)
@@ -61,6 +61,8 @@ function KofrinhoDetails() {
           if (done) break
           if (decoder.decode(value).includes('solicitacao_')) {
             fetchSolicitacoes(kofrinhoId)
+            // recarrega o kofrinho para refletir o saldo (soma das pagas) ao vivo
+            selectKofrinho(kofrinhoId)
           }
         }
       } catch {
@@ -75,7 +77,7 @@ function KofrinhoDetails() {
       controller.abort()
       clearTimeout(reconnectTimeout)
     }
-  }, [id, fetchSolicitacoes])
+  }, [id, fetchSolicitacoes, selectKofrinho])
 
   if (!id) {
     return (

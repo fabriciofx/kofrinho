@@ -104,6 +104,46 @@ test.describe('Saldo do kofrinho', () => {
     await expect(card.locator('.kofrinho-saldo-valor')).toContainText('500,00')
   })
 
+  test('saldo nos detalhes atualiza ao vivo (SSE) ao confirmar uma solicitação', async ({ authenticatedPage: page }) => {
+    await page.waitForLoadState('networkidle')
+
+    const nome = `Kofrinho Live ${Date.now()}`
+    await criarKofrinhoUI(page, nome)
+    const kofrinhoId = await getKofrinhoId(page, nome)
+    const depositanteId = await criarDepositante(page, kofrinhoId)
+
+    // solicitação pendente (pago=0): o saldo começa em 0
+    const solicitacaoId = `e2e-live-${Date.now()}`
+    const status = await page.evaluate(
+      async ({ server, solicitacaoId, kofrinhoId, depositanteId }: any) => {
+        const res = await fetch(`${server}/test/solicitacoes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ solicitacao_id: solicitacaoId, kofrinho_id: kofrinhoId, depositante_id: depositanteId, valor: 450 }),
+        })
+        return res.status
+      },
+      { server: SERVER, solicitacaoId, kofrinhoId, depositanteId }
+    )
+    expect(status).toBe(201)
+
+    // abre os detalhes (inicia a conexão SSE) — saldo 0
+    await page.locator('.kofrinho-card').filter({ hasText: nome })
+      .locator('button:has-text("Ver Detalhes")').click()
+    await page.waitForURL(/\/kofrinho\/\d+/, { timeout: 8000 })
+    await page.waitForLoadState('networkidle')
+    await expect(page.locator('.kofrinho-details-saldo-valor')).toContainText('0,00')
+
+    // confirma o pagamento via webhook (dispara o evento SSE) — sem recarregar a página
+    await page.evaluate(
+      async ({ api, solicitacaoId }: any) => { await fetch(`${api}/solicitacoes/${solicitacaoId}`, { method: 'POST' }) },
+      { api: API, solicitacaoId }
+    )
+
+    // o saldo deve atualizar ao vivo para 450,00
+    await expect(page.locator('.kofrinho-details-saldo-valor')).toContainText('450,00', { timeout: 10000 })
+  })
+
   test('kofrinho sem solicitações pagas mostra saldo zero', async ({ authenticatedPage: page }) => {
     await page.waitForLoadState('networkidle')
 
