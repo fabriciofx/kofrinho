@@ -305,10 +305,12 @@ describe('Solicitação Controller', () => {
     })
   })
 
-  // ─── GET /api/solicitacoes/:solicitacaoId (página pública) ─────────────────
+  // ─── GET /solicitacoes/:solicitacaoId (página HTML) ────────────────────────
 
-  describe('GET /api/solicitacoes/:solicitacaoId (página pública)', () => {
-    const PIX_URL = 'data:image/png;base64,QRCODE_FAKE_BASE64'
+  describe('Página pública da solicitação', () => {
+    // QR Code 1x1 PNG válido + código Pix copia-e-cola conhecidos
+    const PIX_URL =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
     const PIX_CODE = '00020126580014br.gov.bcb.pix0136copia-e-cola-12345'
 
     async function inserirSolicitacaoComPix(
@@ -327,57 +329,90 @@ describe('Solicitação Controller', () => {
       })
     }
 
-    test('retorna 200 com o mesmo conteúdo do e-mail (valor, dono, kofrinho)', async () => {
-      const uuid = randomUUID()
-      await inserirSolicitacaoComPix(uuid, 500)
+    describe('GET /solicitacoes/:solicitacaoId (HTML)', () => {
+      test('responde HTML com o mesmo conteúdo do e-mail (valor, dono, kofrinho)', async () => {
+        const uuid = randomUUID()
+        await inserirSolicitacaoComPix(uuid, 500)
 
-      const res = await request(testServer.app).get(`/api/solicitacoes/${uuid}`)
+        const res = await request(testServer.app).get(`/solicitacoes/${uuid}`)
 
-      expect(res.status).toBe(200)
-      const s = res.body.solicitacao
-      expect(s.solicitacao_id).toBe(uuid)
-      expect(s.valor).toBe(500)
-      expect(s.depositante_nome).toBe('João Silva')
-      expect(s.kofrinho_nome).toBe('Kofrinho Teste')
-      expect(s.kofrinho_descricao).toBe('Para solicitações')
-      expect(s.dono_nome).toBeDefined()
+        expect(res.status).toBe(200)
+        expect(res.headers['content-type']).toMatch(/text\/html/)
+        expect(res.text).toContain('Eu sou o Kofrinho')
+        expect(res.text).toContain('500,00')
+        // referência = descrição do kofrinho ('Para solicitações')
+        expect(res.text).toContain('Para solicitações')
+      })
+
+      test('exibe o QR Code como imagem (tag img apontando para qrcode.png)', async () => {
+        const uuid = randomUUID()
+        await inserirSolicitacaoComPix(uuid, 750)
+
+        const res = await request(testServer.app).get(`/solicitacoes/${uuid}`)
+
+        expect(res.status).toBe(200)
+        expect(res.text).toContain(`<img class="qrcode" src="/solicitacoes/${uuid}/qrcode.png"`)
+      })
+
+      test('exibe o código Pix copia-e-cola e o botão de copiar', async () => {
+        const uuid = randomUUID()
+        await inserirSolicitacaoComPix(uuid, 300)
+
+        const res = await request(testServer.app).get(`/solicitacoes/${uuid}`)
+
+        expect(res.status).toBe(200)
+        expect(res.text).toContain(PIX_CODE)
+        expect(res.text).toContain('id="copiar"')
+        expect(res.text).toContain('Copiar código Pix')
+      })
+
+      test('quando paga, mostra confirmação e não mostra o QR Code', async () => {
+        const uuid = randomUUID()
+        await inserirSolicitacaoComPix(uuid, 100, 1)
+
+        const res = await request(testServer.app).get(`/solicitacoes/${uuid}`)
+
+        expect(res.status).toBe(200)
+        expect(res.text).toContain('já foi confirmado')
+        expect(res.text).not.toContain('qrcode.png')
+      })
+
+      test('não requer autenticação (página pública)', async () => {
+        const uuid = randomUUID()
+        await inserirSolicitacaoComPix(uuid, 200)
+
+        // Sem header Authorization
+        const res = await request(testServer.app).get(`/solicitacoes/${uuid}`)
+        expect(res.status).toBe(200)
+      })
+
+      test('retorna 404 (HTML) quando a solicitação não existe', async () => {
+        const res = await request(testServer.app).get('/solicitacoes/uuid-inexistente')
+
+        expect(res.status).toBe(404)
+        expect(res.headers['content-type']).toMatch(/text\/html/)
+        expect(res.text).toContain('não encontrada')
+      })
     })
 
-    test('retorna o QR Code (pix_url) e o código copia-e-cola (pix_code)', async () => {
-      const uuid = randomUUID()
-      await inserirSolicitacaoComPix(uuid, 750)
+    describe('GET /solicitacoes/:solicitacaoId/qrcode.png (imagem)', () => {
+      test('responde uma imagem PNG válida a partir do pix_url salvo', async () => {
+        const uuid = randomUUID()
+        await inserirSolicitacaoComPix(uuid, 500)
 
-      const res = await request(testServer.app).get(`/api/solicitacoes/${uuid}`)
+        const res = await request(testServer.app).get(`/solicitacoes/${uuid}/qrcode.png`)
 
-      expect(res.status).toBe(200)
-      expect(res.body.solicitacao.pix_url).toBe(PIX_URL)
-      expect(res.body.solicitacao.pix_code).toBe(PIX_CODE)
-    })
+        expect(res.status).toBe(200)
+        expect(res.headers['content-type']).toBe('image/png')
+        // Assinatura PNG: 0x89 'P' 'N' 'G'
+        expect(res.body.slice(0, 4).toString('hex')).toBe('89504e47')
+      })
 
-    test('inclui o estado de pagamento (pago)', async () => {
-      const uuid = randomUUID()
-      await inserirSolicitacaoComPix(uuid, 100, 1)
+      test('retorna 404 quando a solicitação não existe', async () => {
+        const res = await request(testServer.app).get('/solicitacoes/uuid-inexistente/qrcode.png')
 
-      const res = await request(testServer.app).get(`/api/solicitacoes/${uuid}`)
-
-      expect(res.status).toBe(200)
-      expect(res.body.solicitacao.pago).toBe(1)
-    })
-
-    test('não requer autenticação (página pública)', async () => {
-      const uuid = randomUUID()
-      await inserirSolicitacaoComPix(uuid, 200)
-
-      // Sem header Authorization
-      const res = await request(testServer.app).get(`/api/solicitacoes/${uuid}`)
-      expect(res.status).toBe(200)
-    })
-
-    test('retorna 404 quando a solicitação não existe', async () => {
-      const res = await request(testServer.app).get('/api/solicitacoes/uuid-inexistente')
-
-      expect(res.status).toBe(404)
-      expect(res.body.erro).toBeDefined()
+        expect(res.status).toBe(404)
+      })
     })
   })
 })

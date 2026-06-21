@@ -59,20 +59,6 @@ export interface Depositante {
   criado_em: string
 }
 
-export interface SolicitacaoPublica {
-  solicitacao_id: string
-  valor: number
-  pago: number
-  pago_em: string | null
-  criado_em: string
-  pix_url: string | null
-  pix_code: string | null
-  depositante_nome: string
-  dono_nome: string
-  kofrinho_nome: string
-  kofrinho_descricao: string | null
-}
-
 let storedTokens: AuthTokens | null = null
 
 export function setStoredTokens(tokens: AuthTokens | null) {
@@ -389,15 +375,6 @@ export async function listSolicitacoes(kofrinhoId: number): Promise<Solicitacao[
   })
   const data = await handleResponse<{ solicitacoes: Solicitacao[] }>(response)
   return data.solicitacoes
-}
-
-// Solicitação pública (página de pagamento — sem auth)
-export async function getSolicitacao(solicitacaoId: string): Promise<SolicitacaoPublica> {
-  const response = await apiFetch(`${API_BASE_URL}/solicitacoes/${solicitacaoId}`, {
-    headers: { 'Content-Type': 'application/json' }
-  })
-  const data = await handleResponse<{ solicitacao: SolicitacaoPublica }>(response)
-  return data.solicitacao
 }
 
 // Avatar endpoints

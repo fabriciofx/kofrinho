@@ -3,19 +3,6 @@ import { test, expect } from '@playwright/test'
 const SERVER = 'http://localhost:3000'
 const API = `${SERVER}/api`
 
-// Em dev, VITE_API_URL pode apontar para a API de produção. Como a página usa
-// o client da app (API_BASE_URL), reescrevemos as chamadas dela para o servidor
-// local, mantendo o teste autocontido sem depender da configuração do .env.
-const PROD_API = 'https://api.mandacaru.org/api'
-
-async function rotearApiParaLocal(page: any) {
-  await page.route(`${PROD_API}/**`, async (route: any) => {
-    const localUrl = route.request().url().replace(PROD_API, API)
-    const response = await route.fetch({ url: localUrl })
-    await route.fulfill({ response })
-  })
-}
-
 // QR Code 1x1 (PNG) e código Pix copia-e-cola conhecidos, usados nas asserções
 const PIX_URL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
@@ -31,7 +18,7 @@ test.afterAll(async () => {
 })
 
 // Cria usuário + kofrinho + depositante + solicitação (com Pix) via API e
-// devolve o solicitacao_id. Não depende da UI de login.
+// devolve o solicitacao_id. A página em si é HTML servido pelo backend.
 async function prepararSolicitacao(valor: number): Promise<string> {
   const sufixo = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
   const email = `e2e-pagina-${sufixo}@example.com`
@@ -79,37 +66,48 @@ async function prepararSolicitacao(valor: number): Promise<string> {
   return solicitacaoId
 }
 
-test.describe('Página pública da solicitação', () => {
-  test.beforeEach(async ({ page }) => {
-    await rotearApiParaLocal(page)
-  })
-
-  test('exibe o QR Code e o código Pix copia-e-cola', async ({ page }) => {
+test.describe('Página pública da solicitação (HTML)', () => {
+  test('exibe o QR Code como imagem e o código Pix copia-e-cola', async ({ page }) => {
     const solicitacaoId = await prepararSolicitacao(500)
 
-    await page.goto(`/solicitacoes/${solicitacaoId}`)
+    // Página servida pelo backend (em produção: mandacaru.org/solicitacoes/:id)
+    await page.goto(`${SERVER}/solicitacoes/${solicitacaoId}`)
 
-    // Mensagem (mesmo conteúdo do e-mail) + valor formatado + referência
+    // Mensagem (mesmo conteúdo do e-mail) + valor + referência
     await expect(page.locator('text=Eu sou o Kofrinho')).toBeVisible({ timeout: 8000 })
-    await expect(page.locator('text=R$ 500,00')).toBeVisible()
-    await expect(page.locator('text=Viagem 2026')).toBeVisible()
+    await expect(page.locator('body')).toContainText('500,00')
+    await expect(page.locator('body')).toContainText('Viagem 2026')
 
-    // QR Code renderizado a partir do data URL
-    const qrcode = page.locator('.solicitacao-qrcode')
+    // QR Code é uma imagem de verdade (<img>) que carrega
+    const qrcode = page.locator('img.qrcode')
     await expect(qrcode).toBeVisible()
-    await expect(qrcode).toHaveAttribute('src', PIX_URL)
+    await expect(qrcode).toHaveAttribute('src', `/solicitacoes/${solicitacaoId}/qrcode.png`)
+    const carregou = await qrcode.evaluate(
+      (img: HTMLImageElement) => img.complete && img.naturalWidth > 0
+    )
+    expect(carregou).toBe(true)
 
     // Código Pix copia-e-cola visível
-    await expect(page.getByTestId('pix-code')).toHaveText(PIX_CODE)
+    await expect(page.locator('#pix-code')).toHaveText(PIX_CODE)
+  })
+
+  test('a imagem do QR Code responde como PNG', async ({ request }) => {
+    const solicitacaoId = await prepararSolicitacao(123)
+
+    const res = await request.get(`${SERVER}/solicitacoes/${solicitacaoId}/qrcode.png`)
+    expect(res.status()).toBe(200)
+    expect(res.headers()['content-type']).toBe('image/png')
+    const body = await res.body()
+    expect(body.slice(0, 4).toString('hex')).toBe('89504e47') // assinatura PNG
   })
 
   test('o botão copia o código Pix para a área de transferência', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
 
     const solicitacaoId = await prepararSolicitacao(250)
-    await page.goto(`/solicitacoes/${solicitacaoId}`)
+    await page.goto(`${SERVER}/solicitacoes/${solicitacaoId}`)
 
-    const botao = page.getByTestId('copiar-pix')
+    const botao = page.locator('#copiar')
     await expect(botao).toBeVisible({ timeout: 8000 })
     await botao.click()
 
@@ -121,10 +119,10 @@ test.describe('Página pública da solicitação', () => {
     expect(clipboard).toBe(PIX_CODE)
   })
 
-  test('exibe mensagem de erro para solicitação inexistente', async ({ page }) => {
-    await page.goto('/solicitacoes/uuid-que-nao-existe')
-
-    await expect(page.locator('.solicitacao-erro')).toBeVisible({ timeout: 8000 })
-    await expect(page.locator('.solicitacao-qrcode')).toHaveCount(0)
+  test('exibe página de erro para solicitação inexistente', async ({ page }) => {
+    const resp = await page.goto(`${SERVER}/solicitacoes/uuid-que-nao-existe`)
+    expect(resp?.status()).toBe(404)
+    await expect(page.locator('body')).toContainText('não encontrada')
+    await expect(page.locator('img.qrcode')).toHaveCount(0)
   })
 })

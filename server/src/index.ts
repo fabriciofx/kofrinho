@@ -8,7 +8,7 @@ import { iniciarAgendador } from './services/schedulerService.js'
 import authRoutes from './routes/authRoutes.js'
 import kofrinhoRoutes from './routes/kofrinhoRoutes.js'
 import avatarRoutes from './routes/avatarRoutes.js'
-import { registrarSolicitacao, obterSolicitacao } from './controllers/solicitacaoController.js'
+import { registrarSolicitacao, paginaSolicitacao, qrcodeSolicitacao } from './controllers/solicitacaoController.js'
 import { runAsync, runAsyncWithLastId } from './database/db.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -42,8 +42,10 @@ app.get('/api/health', (req, res) => {
 // Webhook Confrapix: confirma solicitação (sem auth)
 app.post('/api/solicitacoes/:solicitacaoId', registrarSolicitacao)
 
-// Página pública da solicitação: QR Code + Pix copia-e-cola (sem auth)
-app.get('/api/solicitacoes/:solicitacaoId', obterSolicitacao)
+// Página web pública (HTML) da solicitação: QR Code (imagem) + Pix copia-e-cola.
+// Servida em mandacaru.org/solicitacoes/:id via proxy do nginx para o backend.
+app.get('/solicitacoes/:solicitacaoId/qrcode.png', qrcodeSolicitacao)
+app.get('/solicitacoes/:solicitacaoId', paginaSolicitacao)
 
 // Rotas auxiliares para testes E2E (não disponíveis em produção)
 if (process.env.TEST_ROUTES === 'true') {

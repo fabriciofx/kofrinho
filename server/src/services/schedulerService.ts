@@ -4,6 +4,7 @@ import { allAsync, runAsync } from '../database/db.js'
 import { sendAgendamentoEmail } from './emailService.js'
 import { chamarConfrapix, construirPayloadConfrapix, type ConfrapixFn } from './confrapixService.js'
 import { notificarKofrinho } from '../controllers/solicitacaoController.js'
+import { salvarQrcode } from '../utils/qrcodeStorage.js'
 
 export type Recorrencia = 'diario' | 'semanal' | 'mensal' | 'anual'
 
@@ -122,6 +123,17 @@ export async function processarAgendamentos(
         'INSERT INTO solicitacoes (solicitacao_id, kofrinho_id, depositante_id, valor, pago, pix_url, pix_code) VALUES (?, ?, ?, ?, 0, ?, ?)',
         [solicitacaoId, ag.kofrinho_id, ag.depositante_id, ag.valor, pixUrl, pixCode]
       )
+
+      // Salva o QR Code da Confrapix como imagem em disco para a página
+      // pública /solicitacoes/:id. Falha aqui não interrompe o agendamento —
+      // a rota da imagem regenera o arquivo a partir do pix_url se necessário.
+      if (process.env.NODE_ENV !== 'test') {
+        try {
+          salvarQrcode(solicitacaoId, pixUrl)
+        } catch (err) {
+          console.error(`❌ Erro ao salvar QR Code da solicitação ${solicitacaoId}:`, err)
+        }
+      }
 
       // Notifica clientes SSE para que a nova solicitação ("A Pagar") apareça ao vivo
       notificarKofrinho(ag.kofrinho_id, 'solicitacao_criada')

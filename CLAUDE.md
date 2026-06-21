@@ -53,9 +53,9 @@ kofrinho/
 │   │                             #         depositos[], loading, error
 │   ├── pages/
 │   │   ├── Home.tsx              # Login/Registro/Dashboard (modo único por estado)
-│   │   ├── KofrinhoDetails.tsx   # Detalhes + edição + tabela de depósitos
-│   │   └── SolicitacaoPage.tsx   # Página pública /solicitacoes/:id — QR Code +
-│   │                             # Pix copia-e-cola + botão copiar (sem auth)
+│   │   └── KofrinhoDetails.tsx   # Detalhes + edição + tabela de depósitos
+│   │   # /solicitacoes/:id NÃO é página React — é HTML do backend
+│   │   # (server/src/controllers/solicitacaoController.ts: paginaSolicitacao)
 │   ├── components/
 │   │   ├── Modal.tsx             # Modal genérico reutilizável
 │   │   ├── KofrinhoForm.tsx      # Form criar kofrinho (usado em modal)
@@ -187,18 +187,29 @@ DELETE /api/kofrinhos/:id/depositos/:depositoId
 POST   /api/avatars/upload        multipart/form-data campo "avatar"
 DELETE /api/avatars
 
-# Solicitações (sem token — webhook e página pública)
+# Solicitações
 POST   /api/solicitacoes/:solicitacaoId   # Webhook Confrapix: confirma pagamento
-GET    /api/solicitacoes/:solicitacaoId   # Dados públicos da solicitação:
-                                          # valor, dono, kofrinho, pix_url, pix_code
-                                          # (alimenta a página /solicitacoes/:id)
 
 GET    /api/health
 ```
 
-> A solicitação guarda `pix_url` (QR Code) e `pix_code` (copia-e-cola) gerados
-> pelo Confrapix no momento do agendamento, para que a página pública exiba
-> exatamente o mesmo conteúdo do e-mail/WhatsApp enviado ao depositante.
+### Página web pública da solicitação (HTML, servida pelo backend)
+
+```
+GET  /solicitacoes/:solicitacaoId            # Página HTML: QR Code (imagem) +
+                                             # Pix copia-e-cola + botão copiar
+GET  /solicitacoes/:solicitacaoId/qrcode.png # Imagem PNG do QR Code
+```
+
+- **Não é uma SPA nem uma chamada à API** — é HTML renderizado pelo Express,
+  para abrir direto em `https://mandacaru.org/solicitacoes/:id`.
+- O QR Code da Confrapix é salvo em disco como imagem em
+  `uploads/qrcodes/<solicitacao_id>.png` (no agendamento e, como fallback, na
+  rota da imagem) e exibido via `<img src=".../qrcode.png">`.
+- A solicitação guarda `pix_url` (QR base64) e `pix_code` (copia-e-cola), gerados
+  pelo Confrapix no agendamento — mesmo conteúdo do e-mail/WhatsApp.
+- **nginx**: `mandacaru.org` deve fazer `proxy_pass` de `location /solicitacoes/`
+  para o backend, **antes** do fallback SPA `try_files ... /index.html`.
 
 ---
 

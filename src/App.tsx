@@ -4,7 +4,6 @@ import { KofrinhoProvider } from './context/KofrinhoContext'
 import Home from './pages/Home'
 import LandingPage from './pages/LandingPage'
 import KofrinhoDetails from './pages/KofrinhoDetails'
-import SolicitacaoPage from './pages/SolicitacaoPage'
 import './App.css'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -22,8 +21,7 @@ function AppContent() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<RootRoute />} />
-        {/* Página pública da solicitação (QR Code + Pix), sem auth */}
-        <Route path="/solicitacoes/:solicitacaoId" element={<SolicitacaoPage />} />
+        {/* /solicitacoes/:id é servida pelo backend (HTML), via proxy do nginx */}
         <Route
           path="/kofrinho/:id"
           element={

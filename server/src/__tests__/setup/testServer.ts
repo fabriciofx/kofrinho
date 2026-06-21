@@ -7,7 +7,7 @@ import path from 'path'
 import { register, login, refreshToken, requestPasswordReset, resetPassword } from '../../controllers/authController.js'
 import { createKofrinho, listKofrinhos, getKofrinho, updateKofrinho, deleteKofrinho } from '../../controllers/kofrinhoController.js'
 import { createDepositante, listDepositantes, updateDepositante, deleteDepositante } from '../../controllers/depositanteController.js'
-import { registrarSolicitacao, obterSolicitacao, listSolicitacoes, streamSolicitacoesEventos, streamUsuarioEventos } from '../../controllers/solicitacaoController.js'
+import { registrarSolicitacao, paginaSolicitacao, qrcodeSolicitacao, listSolicitacoes, streamSolicitacoesEventos, streamUsuarioEventos } from '../../controllers/solicitacaoController.js'
 import { uploadAvatar, deleteAvatar } from '../../controllers/avatarController.js'
 import { authMiddleware } from '../../middleware/auth.js'
 import { uploadMiddleware } from '../../config/multer.js'
@@ -52,7 +52,8 @@ export async function startTestServer(db: sqlite3.Database): Promise<TestServerS
   app.delete('/api/kofrinhos/:id', authMiddleware, deleteKofrinho)
 
   app.post('/api/solicitacoes/:solicitacaoId', registrarSolicitacao)
-  app.get('/api/solicitacoes/:solicitacaoId', obterSolicitacao)
+  app.get('/solicitacoes/:solicitacaoId/qrcode.png', qrcodeSolicitacao)
+  app.get('/solicitacoes/:solicitacaoId', paginaSolicitacao)
   app.get('/api/kofrinhos/:id/solicitacoes/eventos', authMiddleware, streamSolicitacoesEventos)
   app.get('/api/kofrinhos/:id/solicitacoes', authMiddleware, listSolicitacoes)
   app.post('/api/kofrinhos/:id/depositantes', authMiddleware, createDepositante)
