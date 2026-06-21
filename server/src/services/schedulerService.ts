@@ -17,7 +17,8 @@ export type EmailSendFn = (
   recorrencia: string,
   pixUrl: string,
   pixCode: string,
-  telefoneDepositante: string | null
+  telefoneDepositante: string | null,
+  solicitacaoId: string
 ) => Promise<void>
 
 export { type ConfrapixFn }
@@ -147,7 +148,8 @@ export async function processarAgendamentos(
         ag.recorrencia,
         pixUrl,
         pixCode,
-        ag.depositante_telefone
+        ag.depositante_telefone,
+        solicitacaoId
       )
 
       const proxima = calcularProximaExecucao(ag.recorrencia).toISOString()

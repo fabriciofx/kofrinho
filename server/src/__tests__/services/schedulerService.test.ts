@@ -456,6 +456,23 @@ describe('processarAgendamentos', () => {
     expect(args[7]).toBe('00020126580014br.gov.bcb.pix0136CODIGO_COPIA_COLA')
   })
 
+  test('sendFn recebe o solicitacaoId (usado no link da página enviado por WhatsApp)', async () => {
+    const passado = new Date(Date.now() - 1000)
+    await inserirAgendamento(db, depositanteId, kofrinhoId, userId, 'mensal', passado)
+
+    await processarAgendamentos(db, mockSendFn, mockConfrapixFn)
+
+    // O id passado ao envio deve ser o mesmo da solicitação criada (presente no
+    // callback_url da Confrapix), pois é ele que monta /solicitacoes/:id.
+    const callbackUrl = mockConfrapixFn.mock.calls[0][0].callback_url
+    const idDaUrl = callbackUrl.split('/').pop()
+    const args = mockSendFn.mock.calls[0]
+    expect(args[9]).toBe(idDaUrl)
+    expect(args[9]).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+    )
+  })
+
   test('envia e-mail com os dados corretos do depositante', async () => {
     const kfId = await inserirKofrinho(db, userId, 'Cofre Viagem', 'Economias para férias')
     const depId = await inserirDepositante(db, kfId, 'Parcela', 500, 'mensal', 'viajante@teste.com')

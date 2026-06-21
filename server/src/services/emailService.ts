@@ -125,7 +125,8 @@ export async function sendAgendamentoEmail(
   recorrencia: string,
   pixUrl: string,
   pixCode: string,
-  telefoneDepositante: string | null = null
+  telefoneDepositante: string | null = null,
+  solicitacaoId = ''
 ): Promise<void> {
   if (!envioDeEmailHabilitado()) {
     console.log(`✉️  (dev/test) e-mail de agendamento para ${emailDepositante} não enviado`)
@@ -171,14 +172,17 @@ export async function sendAgendamentoEmail(
 
   console.log(`📧 Resend: e-mail enviado para ${emailDepositante}`)
 
-  // Envia a mesma mensagem por WhatsApp, se o depositante tiver telefone.
-  // Falha no WhatsApp não desfaz o e-mail já enviado.
+  // Envia uma mensagem por WhatsApp, se o depositante tiver telefone.
+  // Em vez do código Pix em texto, envia o link da página com o QR Code e o
+  // copia-e-cola. Falha no WhatsApp não desfaz o e-mail já enviado.
   if (telefoneDepositante) {
+    const baseUrl = process.env.FRONTEND_URL || 'https://mandacaru.org'
+    const linkPagamento = `${baseUrl}/solicitacoes/${solicitacaoId}`
     const corpoWhatsApp =
       `Olá! Eu sou o Kofrinho! 🐷\n\n` +
       `Estou lhe enviando essa mensagem para lembrar-lhe de depositar ${valorFormatado} ` +
       `no Kofrinho de ${nomeDonoKofrinho} referente a ${referencia}.\n\n` +
-      `💳 Pagamento via Pix (Copia e Cola):\n${pixCode}`
+      `💳 Para pagar via Pix (QR Code e código copia e cola), acesse:\n${linkPagamento}`
     await sendWhatsApp({ to: telefoneDepositante, body: corpoWhatsApp })
       .catch(err => console.error('❌ Erro ao enviar WhatsApp de agendamento:', err))
   }

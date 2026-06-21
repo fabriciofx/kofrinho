@@ -93,7 +93,9 @@ kofrinho/
 │   │   └── avatarUpload.ts
 │   └── services/
 │       ├── emailService.ts        # Envio de e-mail; ao notificar um depositante
-│       │                          # também dispara a mesma mensagem por WhatsApp
+│       │                          # também dispara WhatsApp. No lembrete de
+│       │                          # agendamento, o WhatsApp leva o LINK da página
+│       │                          # /solicitacoes/:id (não o Pix em texto)
 │       └── whatsappService.ts     # Envio via WhatsApp Cloud API (Meta Graph)
 │
 ├── e2e/                          # Testes Playwright
@@ -207,7 +209,8 @@ GET  /solicitacoes/:solicitacaoId/qrcode.png # Imagem PNG do QR Code
   `uploads/qrcodes/<solicitacao_id>.png` (no agendamento e, como fallback, na
   rota da imagem) e exibido via `<img src=".../qrcode.png">`.
 - A solicitação guarda `pix_url` (QR base64) e `pix_code` (copia-e-cola), gerados
-  pelo Confrapix no agendamento — mesmo conteúdo do e-mail/WhatsApp.
+  pelo Confrapix no agendamento. O e-mail traz o QR + copia-e-cola; o WhatsApp
+  traz o **link** desta página (`${FRONTEND_URL}/solicitacoes/:id`).
 - **Caddy** (ver `Caddyfile` na raiz): `mandacaru.org` deve fazer
   `handle /solicitacoes/* { reverse_proxy localhost:3000 }` **antes** do
   fallback SPA (`try_files {path} /index.html`), senão essa URL serve o
