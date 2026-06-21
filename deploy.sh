@@ -48,3 +48,11 @@ ssh -T $REMOTE << 'EOF'
   "$FNM" exec npm --prefix="$DIR/backend" ci --omit=dev
 EOF
 echo "done."
+
+echo -n "Setting .env files... "
+ssh -T $REMOTE << 'EOF'
+  DIR=/var/www/kofrinho
+  ln -s "$DIR/.env.backend" "$DIR/backend/.env"
+  ln -s "$DIR/.env.frontend" "$DIR/frontend/.env"
+EOF
+echo "done."
