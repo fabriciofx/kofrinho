@@ -89,7 +89,10 @@ kofrinho/
 │   │   ├── validation.ts
 │   │   ├── passwordRecovery.ts
 │   │   └── avatarUpload.ts
-│   └── services/emailService.ts  # Envio de e-mail (recuperação de senha)
+│   └── services/
+│       ├── emailService.ts        # Envio de e-mail; ao notificar um depositante
+│       │                          # também dispara a mesma mensagem por WhatsApp
+│       └── whatsappService.ts     # Envio via WhatsApp Cloud API (Meta Graph)
 │
 ├── e2e/                          # Testes Playwright
 │   ├── fixtures.ts               # authenticatedPage: usuário único por teste

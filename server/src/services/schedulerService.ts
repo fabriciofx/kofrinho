@@ -15,7 +15,8 @@ export type EmailSendFn = (
   valor: number,
   recorrencia: string,
   pixUrl: string,
-  pixCode: string
+  pixCode: string,
+  telefoneDepositante: string | null
 ) => Promise<void>
 
 export { type ConfrapixFn }
@@ -38,6 +39,7 @@ interface AgendamentoPendente {
   kofrinho_id: number
   depositante_id: number
   depositante_email: string
+  depositante_telefone: string | null
   nome_completo: string
   kofrinho_nome: string
   kofrinho_descricao: string | null
@@ -87,6 +89,7 @@ export async function processarAgendamentos(
     `SELECT a.id, a.recorrencia,
             a.kofrinho_id, a.depositante_id,
             d.email AS depositante_email,
+            d.telefone AS depositante_telefone,
             u.nome_completo,
             k.nome  AS kofrinho_nome,
             k.descricao AS kofrinho_descricao,
@@ -128,7 +131,8 @@ export async function processarAgendamentos(
         ag.valor,
         ag.recorrencia,
         pixUrl,
-        pixCode
+        pixCode,
+        ag.depositante_telefone
       )
 
       const proxima = calcularProximaExecucao(ag.recorrencia).toISOString()

@@ -137,11 +137,13 @@ export async function registrarSolicitacao(req: DbInjectedRequest, res: Response
       valor: number
       depositante_nome: string
       depositante_email: string | null
+      depositante_telefone: string | null
       kofrinho_nome: string
       kofrinho_descricao: string | null
     }>(req,
       `SELECT p.pago_em, p.valor,
               d.nome AS depositante_nome, d.email AS depositante_email,
+              d.telefone AS depositante_telefone,
               k.nome AS kofrinho_nome, k.descricao AS kofrinho_descricao
        FROM solicitacoes p
        JOIN depositantes d ON p.depositante_id = d.id
@@ -157,7 +159,8 @@ export async function registrarSolicitacao(req: DbInjectedRequest, res: Response
         dadosEmail.kofrinho_nome,
         dadosEmail.kofrinho_descricao,
         dadosEmail.valor,
-        dadosEmail.pago_em
+        dadosEmail.pago_em,
+        dadosEmail.depositante_telefone
       ).catch(err => console.error('❌ Erro ao enviar e-mail de confirmação:', err))
     }
 

@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
 import { Resend } from 'resend'
+import { sendWhatsApp } from './whatsappService.js'
 
 export interface EmailOptions {
   to: string
@@ -123,7 +124,8 @@ export async function sendAgendamentoEmail(
   valor: number,
   recorrencia: string,
   pixUrl: string,
-  pixCode: string
+  pixCode: string,
+  telefoneDepositante: string | null = null
 ): Promise<void> {
   if (!envioDeEmailHabilitado()) {
     console.log(`✉️  (dev/test) e-mail de agendamento para ${emailDepositante} não enviado`)
@@ -168,6 +170,18 @@ export async function sendAgendamentoEmail(
   }
 
   console.log(`📧 Resend: e-mail enviado para ${emailDepositante}`)
+
+  // Envia a mesma mensagem por WhatsApp, se o depositante tiver telefone.
+  // Falha no WhatsApp não desfaz o e-mail já enviado.
+  if (telefoneDepositante) {
+    const corpoWhatsApp =
+      `Olá! Eu sou o Kofrinho! 🐷\n\n` +
+      `Estou lhe enviando essa mensagem para lembrar-lhe de depositar ${valorFormatado} ` +
+      `no Kofrinho de ${nomeDonoKofrinho} referente a ${referencia}.\n\n` +
+      `💳 Pagamento via Pix (Copia e Cola):\n${pixCode}`
+    await sendWhatsApp({ to: telefoneDepositante, body: corpoWhatsApp })
+      .catch(err => console.error('❌ Erro ao enviar WhatsApp de agendamento:', err))
+  }
 }
 
 // ── Confirmação de solicitação para o depositante ─────────────────────────────
@@ -178,7 +192,8 @@ export async function sendSolicitacaoConfirmadaEmail(
   nomeKofrinho: string,
   descricaoKofrinho: string | null,
   valor: number,
-  pago_em: string
+  pago_em: string,
+  telefoneDepositante: string | null = null
 ): Promise<void> {
   if (!envioDeEmailHabilitado()) return
 
@@ -226,4 +241,17 @@ export async function sendSolicitacaoConfirmadaEmail(
   }
 
   console.log(`📧 Confirmação de solicitação enviada para ${emailDepositante}`)
+
+  // Envia a mesma confirmação por WhatsApp, se o depositante tiver telefone.
+  if (telefoneDepositante) {
+    const corpoWhatsApp =
+      `✅ Depósito confirmado!\n\n` +
+      `Olá, ${nomeDepositante}!\n` +
+      `Seu depósito no Kofrinho foi confirmado com sucesso.\n\n` +
+      `Kofrinho: ${referencia}\n` +
+      `Valor: ${valorFormatado}\n` +
+      `Data e hora: ${dataHora} (horário de Brasília)`
+    await sendWhatsApp({ to: telefoneDepositante, body: corpoWhatsApp })
+      .catch(err => console.error('❌ Erro ao enviar WhatsApp de confirmação:', err))
+  }
 }
