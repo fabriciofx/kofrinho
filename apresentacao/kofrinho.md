@@ -56,7 +56,7 @@ solicitações e administração destes pagamentos.
 
 # Solução
 
-**Kofrinho**: um serviço web que envia solicitações de pagamentos recorrentes por e-mail e administra os pagamentos (não) realizados.
+**Kofrinho**: um serviço web que envia solicitações de pagamentos recorrentes por e-mail e WhatsApp e administra os pagamentos (não) realizados.
 
 ---
 
@@ -72,8 +72,9 @@ solicitações e administração destes pagamentos.
 
 # Gateways
 
-- **ConfraPix** para para criação (links) para pagamentos via pix;
-- **Resend** para o envio dos e-mails.
+- **ConfraPix** para a criação (links) de pagamentos via pix;
+- **Resend** para o envio dos e-mails;
+- **WhatsApp** para o envio de mensagens.
 
 ---
 
@@ -85,17 +86,19 @@ solicitações e administração destes pagamentos.
 
 # Desafios Encontrados
 
-- A IA (Claude Code) utilizada não lida muito bem com a criação/modificação de HTML/CSS;
 - Os testes precisaram ser feitos à mão, dificultando a criação de testes automatizados;
 - Limitações na API da ConfraPag
   - Não permite a criação de novas contas totalmente via API;
   - Não permite a criação de "carteiras" virtuais em uma conta;
+- Limitação na API do WhatsApp
+  - Bem burocrática e limitante
+  - Não permite de maneira fácil a criação de testes automatizados
 
 ---
 
 # Próximos Passos
 
-- Fazer o Kofrinho enviar solicitações pelo WhatsApp e poder administrar o (não) pagamento também pelo WhatsApp.
+- Fazer uma administração 100% via troca de mensagens no WhatsApp
 
 ---
 
