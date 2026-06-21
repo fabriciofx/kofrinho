@@ -1,0 +1,35 @@
+# Caddyfile de referência para o deploy do Kofrinho.
+#
+# Topologia:
+#   - mandacaru.org      → SPA estática (/var/www/kofrinho/frontend) + página
+#                          HTML da solicitação (proxy para o backend)
+#   - api.mandacaru.org  → backend Express (localhost:3000)
+#
+# O backend escuta na porta 3000 (server/src/index.ts).
+#
+# Se você já tem um Caddyfile, basta copiar o bloco `handle /solicitacoes/*`
+# para dentro do seu site `mandacaru.org`, ANTES do fallback da SPA.
+
+mandacaru.org {
+	encode gzip zstd
+	root * /var/www/kofrinho/frontend
+
+	# Página web pública da solicitação (HTML + imagem do QR Code), servida
+	# pelo backend. Precisa vir ANTES do fallback da SPA para não cair no
+	# index.html. Cobre tanto /solicitacoes/:id quanto /solicitacoes/:id/qrcode.png.
+	handle /solicitacoes/* {
+		reverse_proxy localhost:3000
+	}
+
+	# SPA: serve os arquivos estáticos; qualquer rota não encontrada cai no
+	# index.html (equivalente ao `try_files $uri /index.html` do nginx).
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+api.mandacaru.org {
+	encode gzip zstd
+	reverse_proxy localhost:3000
+}

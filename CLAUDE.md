@@ -208,8 +208,10 @@ GET  /solicitacoes/:solicitacaoId/qrcode.png # Imagem PNG do QR Code
   rota da imagem) e exibido via `<img src=".../qrcode.png">`.
 - A solicitação guarda `pix_url` (QR base64) e `pix_code` (copia-e-cola), gerados
   pelo Confrapix no agendamento — mesmo conteúdo do e-mail/WhatsApp.
-- **nginx**: `mandacaru.org` deve fazer `proxy_pass` de `location /solicitacoes/`
-  para o backend, **antes** do fallback SPA `try_files ... /index.html`.
+- **Caddy** (ver `Caddyfile` na raiz): `mandacaru.org` deve fazer
+  `handle /solicitacoes/* { reverse_proxy localhost:3000 }` **antes** do
+  fallback SPA (`try_files {path} /index.html`), senão essa URL serve o
+  `index.html` da SPA em vez da página do backend.
 
 ---
 
