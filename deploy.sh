@@ -1,38 +1,50 @@
 #!/bin/bash
 
+REMOTE=fbc@mandacaru.org
 DIR=/var/www/kofrinho
 
-if [ ! -d "$DIR" ]; then
-  echo -n "Directory $DIR does not exist. Creating it... "
-  mkdir -p "$DIR" "$DIR/frontend" "$DIR/backend"
-  chmod 755 "$DIR" "$DIR/frontend" "$DIR/backend"
-  echo "done."
-fi
+ssh -T $REMOTE << 'EOF'
+  DIR=/var/www/kofrinho
 
-echo -n "Cleaning up existing files in $DIR/frontend and $DIR/backend... "
-rm -rf "$DIR/frontend/"*
-rm -rf "$DIR/backend/"*
-echo "done."
+  if [ ! -d "$DIR" ]; then
+    echo -n "Directory $DIR does not exist. Creating it... "
+    mkdir -p "$DIR"
+    chmod 755 "$DIR"
+    echo "done."
+  fi
+
+  if [ ! -d "$DIR/frontend" ]; then
+    echo -n "Directory $DIR/frontend does not exist. Creating it... "
+    mkdir -p "$DIR/frontend"
+    chmod 755 "$DIR/frontend"
+    echo "done."
+  fi
+
+  if [ ! -d "$DIR/backend" ]; then
+    echo -n "Directory $DIR/backend does not exist. Creating it... "
+    mkdir -p "$DIR/backend"
+    chmod 755 "$DIR/backend"
+    echo "done."
+  fi
+EOF
 
 echo -n "Deploying frontend files to $DIR/frontend... "
-npm run build && cp -a dist/. "$DIR/frontend/"
-echo "done."
-
-echo -n "Copying .env file to $DIR/frontend... "
-cp .env "$DIR/frontend/"
+npm run build && \
+  rsync -avz --delete --exclude "node_modules" dist/ "$REMOTE:$DIR/frontend/"
 echo "done."
 
 echo -n "Deploying backend files to $DIR/backend... "
-cd server && npm run build && \
-  cp -a dist/. "$DIR/backend/" && \
-  cp package.json "$DIR/backend/" && \
-  cp package-lock.json "$DIR/backend/"
+npm --prefix=server run build && \
+  cp server/package.json server/dist/ && \
+  cp server/package-lock.json server/dist/ && \
+  rsync -avz --delete --exclude "node_modules" \
+    server/dist/ "$REMOTE:$DIR/backend/"
 echo "done."
 
-echo -n "Copying .env file to $DIR/backend... "
-cp .env "$DIR/backend/"
-echo "done."
-
-echo "Installing backend dependencies in $DIR/backend... "
-cd "$DIR/backend" && npm install --omit=dev
+echo -n "Installing backend dependencies in $DIR/backend... "
+ssh -T $REMOTE << 'EOF'
+  DIR=/var/www/kofrinho
+  FNM=/home/fbc/.local/share/fnm/fnm
+  "$FNM" exec npm --prefix="$DIR/backend" ci --omit=dev
+EOF
 echo "done."
