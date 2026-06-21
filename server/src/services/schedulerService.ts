@@ -107,14 +107,9 @@ export async function processarAgendamentos(
     try {
       const solicitacaoId = randomUUID()
 
-      await runDbAsync(db,
-        'INSERT INTO solicitacoes (solicitacao_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, 0)',
-        [solicitacaoId, ag.kofrinho_id, ag.depositante_id, ag.valor]
-      )
-
-      // Notifica clientes SSE para que a nova solicitação ("A Pagar") apareça ao vivo
-      notificarKofrinho(ag.kofrinho_id, 'solicitacao_criada')
-
+      // Gera o Pix antes de persistir, para guardar o QR code e o copia-e-cola
+      // junto da solicitação — assim a página pública pode exibir o mesmo
+      // conteúdo do e-mail. Se o Confrapix falhar, nada é inserido.
       const payload = construirPayloadConfrapix(
         ag.valor,
         ag.kofrinho_descricao,
@@ -122,6 +117,14 @@ export async function processarAgendamentos(
         agora
       )
       const { pixUrl, pixCode } = await confrapixFn(payload)
+
+      await runDbAsync(db,
+        'INSERT INTO solicitacoes (solicitacao_id, kofrinho_id, depositante_id, valor, pago, pix_url, pix_code) VALUES (?, ?, ?, ?, 0, ?, ?)',
+        [solicitacaoId, ag.kofrinho_id, ag.depositante_id, ag.valor, pixUrl, pixCode]
+      )
+
+      // Notifica clientes SSE para que a nova solicitação ("A Pagar") apareça ao vivo
+      notificarKofrinho(ag.kofrinho_id, 'solicitacao_criada')
 
       await sendFn(
         ag.depositante_email,

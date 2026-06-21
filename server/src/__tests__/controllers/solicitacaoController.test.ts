@@ -304,4 +304,80 @@ describe('Solicitação Controller', () => {
       expect(pagDepois.pago_em).not.toBeNull()
     })
   })
+
+  // ─── GET /api/solicitacoes/:solicitacaoId (página pública) ─────────────────
+
+  describe('GET /api/solicitacoes/:solicitacaoId (página pública)', () => {
+    const PIX_URL = 'data:image/png;base64,QRCODE_FAKE_BASE64'
+    const PIX_CODE = '00020126580014br.gov.bcb.pix0136copia-e-cola-12345'
+
+    async function inserirSolicitacaoComPix(
+      solicitacaoId: string,
+      valor: number,
+      pago = 0
+    ): Promise<void> {
+      return new Promise((resolve, reject) => {
+        testDb.run(
+          `INSERT INTO solicitacoes
+             (solicitacao_id, kofrinho_id, depositante_id, valor, pago, pix_url, pix_code)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [solicitacaoId, kofrinhoId, depositanteId, valor, pago, PIX_URL, PIX_CODE],
+          (err) => (err ? reject(err) : resolve())
+        )
+      })
+    }
+
+    test('retorna 200 com o mesmo conteúdo do e-mail (valor, dono, kofrinho)', async () => {
+      const uuid = randomUUID()
+      await inserirSolicitacaoComPix(uuid, 500)
+
+      const res = await request(testServer.app).get(`/api/solicitacoes/${uuid}`)
+
+      expect(res.status).toBe(200)
+      const s = res.body.solicitacao
+      expect(s.solicitacao_id).toBe(uuid)
+      expect(s.valor).toBe(500)
+      expect(s.depositante_nome).toBe('João Silva')
+      expect(s.kofrinho_nome).toBe('Kofrinho Teste')
+      expect(s.kofrinho_descricao).toBe('Para solicitações')
+      expect(s.dono_nome).toBeDefined()
+    })
+
+    test('retorna o QR Code (pix_url) e o código copia-e-cola (pix_code)', async () => {
+      const uuid = randomUUID()
+      await inserirSolicitacaoComPix(uuid, 750)
+
+      const res = await request(testServer.app).get(`/api/solicitacoes/${uuid}`)
+
+      expect(res.status).toBe(200)
+      expect(res.body.solicitacao.pix_url).toBe(PIX_URL)
+      expect(res.body.solicitacao.pix_code).toBe(PIX_CODE)
+    })
+
+    test('inclui o estado de pagamento (pago)', async () => {
+      const uuid = randomUUID()
+      await inserirSolicitacaoComPix(uuid, 100, 1)
+
+      const res = await request(testServer.app).get(`/api/solicitacoes/${uuid}`)
+
+      expect(res.status).toBe(200)
+      expect(res.body.solicitacao.pago).toBe(1)
+    })
+
+    test('não requer autenticação (página pública)', async () => {
+      const uuid = randomUUID()
+      await inserirSolicitacaoComPix(uuid, 200)
+
+      // Sem header Authorization
+      const res = await request(testServer.app).get(`/api/solicitacoes/${uuid}`)
+      expect(res.status).toBe(200)
+    })
+
+    test('retorna 404 quando a solicitação não existe', async () => {
+      const res = await request(testServer.app).get('/api/solicitacoes/uuid-inexistente')
+
+      expect(res.status).toBe(404)
+      expect(res.body.erro).toBeDefined()
+    })
+  })
 })

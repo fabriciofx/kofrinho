@@ -172,6 +172,51 @@ export async function registrarSolicitacao(req: DbInjectedRequest, res: Response
   }
 }
 
+// Página pública da solicitação — mesmo conteúdo do e-mail enviado ao
+// depositante (QR Code + Pix copia-e-cola). Sem auth: acessível por quem
+// recebeu o link por e-mail/WhatsApp.
+// GET /api/solicitacoes/:solicitacaoId
+export async function obterSolicitacao(req: DbInjectedRequest, res: Response) {
+  try {
+    const { solicitacaoId } = req.params
+
+    const solicitacao = await getDbAsync<{
+      solicitacao_id: string
+      valor: number
+      pago: number
+      pago_em: string | null
+      criado_em: string
+      pix_url: string | null
+      pix_code: string | null
+      depositante_nome: string
+      dono_nome: string
+      kofrinho_nome: string
+      kofrinho_descricao: string | null
+    }>(req,
+      `SELECT s.solicitacao_id, s.valor, s.pago, s.pago_em, s.criado_em,
+              s.pix_url, s.pix_code,
+              d.nome AS depositante_nome,
+              u.nome_completo AS dono_nome,
+              k.nome AS kofrinho_nome, k.descricao AS kofrinho_descricao
+       FROM solicitacoes s
+       JOIN depositantes d ON s.depositante_id = d.id
+       JOIN kofrinhos k    ON s.kofrinho_id    = k.id
+       JOIN users u        ON k.user_id        = u.id
+       WHERE s.solicitacao_id = ?`,
+      [solicitacaoId]
+    )
+
+    if (!solicitacao) {
+      return res.status(404).json({ erro: 'Solicitação não encontrada' })
+    }
+
+    return res.status(200).json({ solicitacao })
+  } catch (err) {
+    console.error('❌ Erro ao obter solicitação:', err)
+    res.status(500).json({ erro: 'Erro interno do servidor' })
+  }
+}
+
 // SSE: stream de eventos de solicitação para um kofrinho (requer auth)
 // GET /api/kofrinhos/:id/solicitacoes/eventos
 export async function streamSolicitacoesEventos(req: DbInjectedAuthRequest, res: Response): Promise<void> {

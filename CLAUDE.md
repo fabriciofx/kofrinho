@@ -53,7 +53,9 @@ kofrinho/
 │   │                             #         depositos[], loading, error
 │   ├── pages/
 │   │   ├── Home.tsx              # Login/Registro/Dashboard (modo único por estado)
-│   │   └── KofrinhoDetails.tsx   # Detalhes + edição + tabela de depósitos
+│   │   ├── KofrinhoDetails.tsx   # Detalhes + edição + tabela de depósitos
+│   │   └── SolicitacaoPage.tsx   # Página pública /solicitacoes/:id — QR Code +
+│   │                             # Pix copia-e-cola + botão copiar (sem auth)
 │   ├── components/
 │   │   ├── Modal.tsx             # Modal genérico reutilizável
 │   │   ├── KofrinhoForm.tsx      # Form criar kofrinho (usado em modal)
@@ -185,8 +187,18 @@ DELETE /api/kofrinhos/:id/depositos/:depositoId
 POST   /api/avatars/upload        multipart/form-data campo "avatar"
 DELETE /api/avatars
 
+# Solicitações (sem token — webhook e página pública)
+POST   /api/solicitacoes/:solicitacaoId   # Webhook Confrapix: confirma pagamento
+GET    /api/solicitacoes/:solicitacaoId   # Dados públicos da solicitação:
+                                          # valor, dono, kofrinho, pix_url, pix_code
+                                          # (alimenta a página /solicitacoes/:id)
+
 GET    /api/health
 ```
+
+> A solicitação guarda `pix_url` (QR Code) e `pix_code` (copia-e-cola) gerados
+> pelo Confrapix no momento do agendamento, para que a página pública exiba
+> exatamente o mesmo conteúdo do e-mail/WhatsApp enviado ao depositante.
 
 ---
 

@@ -8,7 +8,7 @@ import { iniciarAgendador } from './services/schedulerService.js'
 import authRoutes from './routes/authRoutes.js'
 import kofrinhoRoutes from './routes/kofrinhoRoutes.js'
 import avatarRoutes from './routes/avatarRoutes.js'
-import { registrarSolicitacao } from './controllers/solicitacaoController.js'
+import { registrarSolicitacao, obterSolicitacao } from './controllers/solicitacaoController.js'
 import { runAsync, runAsyncWithLastId } from './database/db.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -42,14 +42,17 @@ app.get('/api/health', (req, res) => {
 // Webhook Confrapix: confirma solicitação (sem auth)
 app.post('/api/solicitacoes/:solicitacaoId', registrarSolicitacao)
 
+// Página pública da solicitação: QR Code + Pix copia-e-cola (sem auth)
+app.get('/api/solicitacoes/:solicitacaoId', obterSolicitacao)
+
 // Rotas auxiliares para testes E2E (não disponíveis em produção)
 if (process.env.TEST_ROUTES === 'true') {
   app.post('/test/solicitacoes', async (req, res) => {
     try {
-      const { solicitacao_id, kofrinho_id, depositante_id, valor } = req.body
+      const { solicitacao_id, kofrinho_id, depositante_id, valor, pix_url, pix_code } = req.body
       await runAsync(
-        'INSERT INTO solicitacoes (solicitacao_id, kofrinho_id, depositante_id, valor, pago) VALUES (?, ?, ?, ?, 0)',
-        [solicitacao_id, kofrinho_id, depositante_id, valor]
+        'INSERT INTO solicitacoes (solicitacao_id, kofrinho_id, depositante_id, valor, pago, pix_url, pix_code) VALUES (?, ?, ?, ?, 0, ?, ?)',
+        [solicitacao_id, kofrinho_id, depositante_id, valor, pix_url ?? null, pix_code ?? null]
       )
       res.status(201).json({ message: 'Solicitação de teste criada' })
     } catch (err) {

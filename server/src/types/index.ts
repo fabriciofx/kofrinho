@@ -40,6 +40,8 @@ export interface Solicitacao {
   valor: number
   pago: number
   pago_em: string | null
+  pix_url?: string | null
+  pix_code?: string | null
   criado_em: string
 }
 
