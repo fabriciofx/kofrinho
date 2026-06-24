@@ -18,7 +18,10 @@ const spec = {
     },
   },
   servers: [
-    { url: 'http://localhost:3000', description: 'Desenvolvimento local' },
+    {
+      url: 'http://localhost:3000',
+      description: 'Desenvolvimento local (padrão — configure PORT e KOFRINHO_API_URL para outro endereço)',
+    },
     { url: 'https://api.mandacaru.org', description: 'Produção' },
   ],
   tags: [
@@ -1147,7 +1150,7 @@ const spec = {
                   type: 'object',
                   properties: {
                     status: { type: 'string', example: 'ok' },
-                    message: { type: 'string', example: 'Server running on port 3000' },
+                    message: { type: 'string', example: 'Server running on port 3000', description: 'Porta definida pela variável PORT (padrão: 3000)' },
                   },
                 },
               },

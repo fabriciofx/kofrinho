@@ -31,7 +31,7 @@ Produção: **https://mandacaru.org** | API: **https://api.mandacaru.org**
 npm install
 cd server && npm install && cd ..
 
-# Frontend (5173) + Backend (3000) juntos
+# Frontend (5173) + Backend (porta definida por PORT, padrão 3000) juntos
 npm run dev:full
 
 # Individualmente
@@ -64,11 +64,16 @@ Crie `server/.env` (o arquivo nunca deve ser commitado):
 JWT_SECRET=sua_chave_secreta_aqui
 JWT_REFRESH_SECRET=outra_chave_secreta_aqui
 
+# Porta do servidor Express (padrão: 3000)
+PORT=3000
+
 # CORS — domínios separados por vírgula (dev aceita localhost por padrão)
 CORS_ORIGIN=https://mandacaru.org
 
-# URL pública do backend (usada na callback_url enviada à Confrapix)
-KOFRINHO_API_URL=https://api.mandacaru.org
+# URL pública do backend incluindo o prefixo /api.
+# Usada como base nos logs, na callback_url da Confrapix e no link do Swagger UI.
+# Padrão: http://localhost:<PORT>/api
+KOFRINHO_API_URL=https://api.mandacaru.org/api
 
 # URL pública do frontend (usada no link do WhatsApp de agendamento)
 FRONTEND_URL=https://mandacaru.org
@@ -239,12 +244,14 @@ CREATE TABLE solicitacoes (
 
 ## Documentação interativa (Swagger UI)
 
-A API é documentada com **Swagger UI** (OpenAPI 3.0). Com o servidor rodando, acesse:
+A API é documentada com **Swagger UI** (OpenAPI 3.0). Com o servidor rodando, acesse `<KOFRINHO_API_URL>/docs`:
 
 | Ambiente | URL |
 |----------|-----|
-| Desenvolvimento | http://localhost:3000/api/docs |
+| Desenvolvimento (padrão) | http://localhost:3000/api/docs |
 | Produção | https://api.mandacaru.org/api/docs |
+
+A URL é construída automaticamente a partir da variável `KOFRINHO_API_URL` — se você rodar o backend em outra porta ou domínio, configure essa variável e o link do log de startup já apontará para o endereço correto.
 
 A interface permite explorar todos os endpoints, ver os schemas de request/response e executar chamadas diretamente pelo browser — incluindo rotas protegidas com JWT (clique em **Authorize** e cole o access token obtido em `/api/auth/login`).
 
@@ -252,8 +259,7 @@ A interface permite explorar todos os endpoints, ver os schemas de request/respo
 
 ## API REST
 
-Base local: `http://localhost:3000/api`  
-Base produção: `https://api.mandacaru.org/api`
+Base: `KOFRINHO_API_URL` (padrão local: `http://localhost:3000/api` · produção: `https://api.mandacaru.org/api`)
 
 Autenticação: `Authorization: Bearer <access_token>` nas rotas protegidas.  
 Todas as respostas são **JSON**, incluindo erros 404 (`{ "erro": "Rota não encontrada" }`).
