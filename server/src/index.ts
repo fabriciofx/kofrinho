@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import swaggerUi from 'swagger-ui-express'
 import { initializeDatabase } from './database/init.js'
 import { iniciarAgendador } from './services/schedulerService.js'
 import authRoutes from './routes/authRoutes.js'
@@ -10,6 +11,7 @@ import kofrinhoRoutes from './routes/kofrinhoRoutes.js'
 import avatarRoutes from './routes/avatarRoutes.js'
 import { registrarSolicitacao, paginaSolicitacao, qrcodeSolicitacao } from './controllers/solicitacaoController.js'
 import { runAsync, runAsyncWithLastId } from './database/db.js'
+import openapiSpec from './docs/openapi.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -28,6 +30,8 @@ app.use(cors({
 
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ limit: '50mb', extended: true }))
+
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec))
 
 app.use('/api/auth', authRoutes)
 app.use('/api/kofrinhos', kofrinhoRoutes)
@@ -100,7 +104,7 @@ async function startServer() {
     
     app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando em http://localhost:${PORT}`)
-      console.log(`📊 Documentação: http://localhost:${PORT}/api/health`)
+      console.log(`📖 Documentação: http://localhost:${PORT}/api/docs`)
       // SCHEDULER_DISABLED=true desliga o agendador (usado nos testes E2E,
       // para evitar escritas a cada segundo que sobrecarregam o servidor)
       if (process.env.SCHEDULER_DISABLED === 'true') {

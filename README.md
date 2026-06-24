@@ -237,6 +237,19 @@ CREATE TABLE solicitacoes (
 
 ---
 
+## Documentação interativa (Swagger UI)
+
+A API é documentada com **Swagger UI** (OpenAPI 3.0). Com o servidor rodando, acesse:
+
+| Ambiente | URL |
+|----------|-----|
+| Desenvolvimento | http://localhost:3000/api/docs |
+| Produção | https://api.mandacaru.org/api/docs |
+
+A interface permite explorar todos os endpoints, ver os schemas de request/response e executar chamadas diretamente pelo browser — incluindo rotas protegidas com JWT (clique em **Authorize** e cole o access token obtido em `/api/auth/login`).
+
+---
+
 ## API REST
 
 Base local: `http://localhost:3000/api`  
