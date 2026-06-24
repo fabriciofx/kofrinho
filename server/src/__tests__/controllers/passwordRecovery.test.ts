@@ -1,5 +1,5 @@
 import request from 'supertest'
-import bcrypt from 'bcrypt'
+import { hashPassword } from '../../utils/password.js'
 import { setupTestDb, runAsync, getAsync, allAsync } from '../setup/database.js'
 import { startTestServer, stopTestServer, TestServerSetup } from '../setup/testServer.js'
 import { generateAccessToken } from '../../utils/jwt.js'
@@ -16,7 +16,7 @@ describe('Password Recovery - POST /api/auth/forgot-password', () => {
   beforeAll(async () => {
     testDb = await setupTestDb()
     testServer = await startTestServer(testDb)
-    senhaHash = await bcrypt.hash(baseUser.senha, 10)
+    senhaHash = await hashPassword(baseUser.senha)
 
     await runAsync(testDb, 
       `INSERT INTO users (id, nome_completo, email, senha_hash) 
@@ -112,7 +112,7 @@ describe('Password Recovery - POST /api/auth/reset-password', () => {
   test('resets password with valid token and new password', async () => {
     const baseUser = createValidUser()
     const userId = 100
-    const senhaHash = await bcrypt.hash(baseUser.senha, 10)
+    const senhaHash = await hashPassword(baseUser.senha)
 
     await runAsync(testDb, 
       `INSERT INTO users (id, nome_completo, email, senha_hash) 
@@ -142,7 +142,7 @@ describe('Password Recovery - POST /api/auth/reset-password', () => {
   test('clears reset token after successful reset', async () => {
     const baseUser = createValidUser()
     const userId = 101
-    const senhaHash = await bcrypt.hash(baseUser.senha, 10)
+    const senhaHash = await hashPassword(baseUser.senha)
 
     await runAsync(testDb, 
       `INSERT INTO users (id, nome_completo, email, senha_hash) 
@@ -208,7 +208,7 @@ describe('Password Recovery - POST /api/auth/reset-password', () => {
   test('returns 400 when password does not meet requirements', async () => {
     const baseUser = createValidUser()
     const userId = 102
-    const senhaHash = await bcrypt.hash(baseUser.senha, 10)
+    const senhaHash = await hashPassword(baseUser.senha)
 
     await runAsync(testDb, 
       `INSERT INTO users (id, nome_completo, email, senha_hash) 
@@ -237,7 +237,7 @@ describe('Password Recovery - POST /api/auth/reset-password', () => {
   test('returns 401 when token is expired', async () => {
     const baseUser = createValidUser()
     const userId = 103
-    const senhaHash = await bcrypt.hash(baseUser.senha, 10)
+    const senhaHash = await hashPassword(baseUser.senha)
 
     await runAsync(testDb, 
       `INSERT INTO users (id, nome_completo, email, senha_hash) 
@@ -272,7 +272,7 @@ describe('Password Recovery - POST /api/auth/reset-password', () => {
   test('allows login with new password after reset', async () => {
     const baseUser = createValidUser()
     const userId = 104
-    const senhaHash = await bcrypt.hash(baseUser.senha, 10)
+    const senhaHash = await hashPassword(baseUser.senha)
 
     await runAsync(testDb, 
       `INSERT INTO users (id, nome_completo, email, senha_hash) 
@@ -306,7 +306,7 @@ describe('Password Recovery - POST /api/auth/reset-password', () => {
   test('prevents login with old password after reset', async () => {
     const baseUser = createValidUser()
     const userId = 105
-    const senhaHash = await bcrypt.hash(baseUser.senha, 10)
+    const senhaHash = await hashPassword(baseUser.senha)
 
     await runAsync(testDb, 
       `INSERT INTO users (id, nome_completo, email, senha_hash) 
@@ -339,7 +339,7 @@ describe('Password Recovery - POST /api/auth/reset-password', () => {
   test('prevents reusing same reset token', async () => {
     const baseUser = createValidUser()
     const userId = 106
-    const senhaHash = await bcrypt.hash(baseUser.senha, 10)
+    const senhaHash = await hashPassword(baseUser.senha)
 
     await runAsync(testDb, 
       `INSERT INTO users (id, nome_completo, email, senha_hash) 

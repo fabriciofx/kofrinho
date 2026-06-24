@@ -1,5 +1,5 @@
 import request from 'supertest'
-import bcrypt from 'bcrypt'
+import { hashPassword } from '../../utils/password.js'
 import { setupTestDb, runAsync, getAsync } from '../setup/database.js'
 import { startTestServer, stopTestServer, TestServerSetup } from '../setup/testServer.js'
 import { generateAccessToken } from '../../utils/jwt.js'
@@ -31,7 +31,7 @@ describe('Avatar Upload - POST /api/avatars/upload', () => {
   beforeAll(async () => {
     testDb = await setupTestDb()
     testServer = await startTestServer(testDb)
-    senhaHash = await bcrypt.hash(baseUser.senha, 10)
+    senhaHash = await hashPassword(baseUser.senha)
 
     await runAsync(testDb,
       `INSERT INTO users (id, nome_completo, email, senha_hash)
@@ -147,7 +147,7 @@ describe('Avatar Delete - DELETE /api/avatars', () => {
   beforeAll(async () => {
     testDb = await setupTestDb()
     testServer = await startTestServer(testDb)
-    senhaHash = await bcrypt.hash(baseUser.senha, 10)
+    senhaHash = await hashPassword(baseUser.senha)
 
     await runAsync(testDb,
       `INSERT INTO users (id, nome_completo, email, senha_hash)

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express'
-import bcrypt from 'bcrypt'
+import { hashPassword, verifyPassword } from '../utils/password.js'
 import { getAsync, runAsync } from '../database/db.js'
 import { isValidEmail, isValidPassword, getPasswordValidationErrors } from '../utils/validation.js'
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.js'
@@ -79,7 +79,7 @@ export async function register(req: DbInjectedRequest, res: Response) {
       return res.status(409).json({ erro: 'Email já cadastrado' })
     }
 
-    const senhaHash = await bcrypt.hash(senha, 10)
+    const senhaHash = await hashPassword(senha)
 
     await runDbAsync(req,
       `INSERT INTO users (nome_completo, email, senha_hash) 
@@ -130,7 +130,7 @@ export async function login(req: DbInjectedRequest, res: Response) {
       return res.status(401).json({ erro: 'Email ou senha inválidos' })
     }
 
-    const senhaValida = await bcrypt.compare(senha, usuario.senha_hash || '')
+    const senhaValida = await verifyPassword(usuario.senha_hash || '', senha)
 
     if (!senhaValida) {
       return res.status(401).json({ erro: 'Email ou senha inválidos' })
@@ -277,7 +277,7 @@ export async function resetPassword(req: DbInjectedRequest, res: Response) {
       return res.status(401).json({ erro: 'Token expirado' })
     }
 
-    const novaHashSenha = await bcrypt.hash(novaSenha, 10)
+    const novaHashSenha = await hashPassword(novaSenha)
 
     await runDbAsync(req,
       'UPDATE users SET senha_hash = ?, reset_token = NULL, reset_token_expira_em = NULL WHERE id = ?',
