@@ -17,7 +17,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const app = express()
-const PORT = 3000
+const PORT = Number(process.env.PORT ?? 3000)
+const API_BASE = process.env.KOFRINHO_API_URL ?? `http://localhost:${PORT}/api`
 
 const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
   .split(',')
@@ -103,8 +104,8 @@ async function startServer() {
     await initializeDatabase()
     
     app.listen(PORT, () => {
-      console.log(`🚀 Servidor rodando em http://localhost:${PORT}`)
-      console.log(`📖 Documentação: http://localhost:${PORT}/api/docs`)
+      console.log(`🚀 Servidor rodando em ${API_BASE.replace(/\/api$/, '')}`)
+      console.log(`📖 Documentação: ${API_BASE}/docs`)
       // SCHEDULER_DISABLED=true desliga o agendador (usado nos testes E2E,
       // para evitar escritas a cada segundo que sobrecarregam o servidor)
       if (process.env.SCHEDULER_DISABLED === 'true') {
