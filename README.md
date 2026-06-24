@@ -13,6 +13,7 @@ Produção: **https://mandacaru.org** | API: **https://api.mandacaru.org**
 | Frontend | React 19 + TypeScript + Vite 8 + React Router 7 |
 | Backend | Express 4 + TypeScript + SQLite (sqlite3) |
 | Auth | JWT — access token (2h) + refresh token (7d) |
+| Hash de senhas | Argon2id — memory 64 MiB, time cost 3, parallelism 4 |
 | Pagamentos | Confrapix (gateway Pix) |
 | E-mail agendamento | Resend |
 | E-mail recuperação de senha | Nodemailer (SMTP) |
@@ -177,7 +178,7 @@ CREATE TABLE users (
   id                    INTEGER PRIMARY KEY AUTOINCREMENT,
   nome_completo         TEXT NOT NULL,
   email                 TEXT UNIQUE NOT NULL,
-  senha_hash            TEXT NOT NULL,
+  senha_hash            TEXT NOT NULL,           -- Argon2id (64 MiB, t=3, p=4)
   foto_avatar           TEXT,           -- path relativo em uploads/avatars/
   reset_token           TEXT,
   reset_token_expira_em DATETIME,
