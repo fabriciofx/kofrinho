@@ -507,9 +507,12 @@ DELETE /api/avatars
 ```
 GET /solicitacoes/:solicitacaoId            # Página HTML com QR Code + copia-e-cola
 GET /solicitacoes/:solicitacaoId/qrcode.png # Imagem PNG do QR Code
+GET /solicitacoes/:solicitacaoId/status     # JSON { pago: boolean }
 ```
 
 Estas rotas são servidas pelo backend Express, não pela SPA React. O Caddy precisa fazer proxy de `/solicitacoes/*` para o backend **antes** do fallback `try_files`.
+
+A página de pagamento consulta `GET /solicitacoes/:id/status` por polling (a cada 4 s). Assim que o webhook da Confrapix marca a solicitação como paga, a página esconde o QR Code/código Pix e exibe um aviso de **pagamento confirmado** ao vivo, sem o depositante precisar recarregar.
 
 ---
 
@@ -545,7 +548,11 @@ GET /api/health
    ├─ Notifica SSE: solicitacao_confirmada + saldo_atualizado
    └─ Envia e-mail e WhatsApp de confirmação ao depositante
 
-5. Dashboard do dono atualiza saldo ao vivo via SSE (GET /api/kofrinhos/eventos)
+5. Página de pagamento do depositante (se ainda aberta) detecta a confirmação
+   via polling (GET /solicitacoes/:id/status) e exibe o aviso de pagamento
+   confirmado ao vivo, sem reload
+
+6. Dashboard do dono atualiza saldo ao vivo via SSE (GET /api/kofrinhos/eventos)
 ```
 
 ---

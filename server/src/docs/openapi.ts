@@ -1040,6 +1040,50 @@ const spec = {
       },
     },
 
+    '/solicitacoes/{solicitacaoId}/status': {
+      get: {
+        tags: ['Solicitações'],
+        summary: 'Situação de pagamento da solicitação (JSON público)',
+        description:
+          'Retorna se a solicitação já foi paga. Endpoint **público** (sem auth), ' +
+          'consultado por polling pela página de pagamento para exibir o aviso de ' +
+          'confirmação ao vivo, sem recarregar a página, assim que o webhook da ' +
+          'Confrapix marcar a solicitação como paga.',
+        parameters: [
+          {
+            name: 'solicitacaoId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            example: 'sol_abc123',
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Situação de pagamento',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    pago: {
+                      type: 'boolean',
+                      description: 'true se a solicitação já foi confirmada',
+                    },
+                  },
+                },
+                example: { pago: false },
+              },
+            },
+          },
+          '404': {
+            description: 'Solicitação não encontrada',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/Erro' } } },
+          },
+        },
+      },
+    },
+
     // ══════════════════════════════════════════════════════════════
     // AVATARES
     // ══════════════════════════════════════════════════════════════
