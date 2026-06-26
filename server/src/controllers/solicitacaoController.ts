@@ -320,7 +320,11 @@ export async function paginaSolicitacao(req: DbInjectedRequest, res: Response) {
       corpo += `
     <p class="pago">✅ Este depósito já foi confirmado. Obrigado!</p>`
     } else {
+      // Aviso de confirmação ao vivo: começa oculto e é exibido pelo polling
+      // assim que o webhook da Confrapix marcar a solicitação como paga.
       corpo += `
+    <p class="pago" id="aviso-pago" style="display: none;">✅ Pagamento confirmado! Obrigado pelo seu depósito. 🐷</p>
+    <div id="secao-pagamento">
     <h2>Pagamento via Pix</h2>
     <p>Escaneie o QR Code abaixo ou use o código Pix para realizar o depósito:</p>
     <img class="qrcode" src="${qrcodeUrl}" alt="QR Code Pix" width="220" height="220" />`
@@ -360,6 +364,30 @@ export async function paginaSolicitacao(req: DbInjectedRequest, res: Response) {
       })();
     </script>`
       }
+
+      corpo += `
+    </div>
+    <script>
+      (function () {
+        var statusUrl = ${JSON.stringify(`/solicitacoes/${encodeURIComponent(solicitacaoId)}/status`)};
+        var timer = setInterval(verificar, 4000);
+
+        function confirmar() {
+          clearInterval(timer);
+          var secao = document.getElementById('secao-pagamento');
+          if (secao) secao.style.display = 'none';
+          var aviso = document.getElementById('aviso-pago');
+          if (aviso) aviso.style.display = 'block';
+        }
+
+        function verificar() {
+          fetch(statusUrl, { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) { if (data && data.pago) confirmar(); })
+            .catch(function () { /* tenta novamente no próximo ciclo */ });
+        }
+      })();
+    </script>`
     }
 
     return res.status(200).send(paginaHtml(
@@ -374,6 +402,30 @@ export async function paginaSolicitacao(req: DbInjectedRequest, res: Response) {
       `    <h1>Kofrinho 🐷</h1>
     <p class="erro">Não foi possível carregar a solicitação.</p>`
     ))
+  }
+}
+
+// Situação de pagamento da solicitação (JSON público, sem auth). Usado pela
+// página pública para detectar a confirmação ao vivo, via polling.
+// GET /solicitacoes/:solicitacaoId/status
+export async function statusSolicitacao(req: DbInjectedRequest, res: Response) {
+  try {
+    const { solicitacaoId } = req.params
+
+    const row = await getDbAsync<{ pago: number }>(req,
+      'SELECT pago FROM solicitacoes WHERE solicitacao_id = ?',
+      [solicitacaoId]
+    )
+
+    if (!row) {
+      return res.status(404).json({ erro: 'Solicitação não encontrada' })
+    }
+
+    res.setHeader('Cache-Control', 'no-store')
+    return res.status(200).json({ pago: row.pago === 1 })
+  } catch (err) {
+    console.error('❌ Erro ao consultar situação da solicitação:', err)
+    res.status(500).json({ erro: 'Erro interno do servidor' })
   }
 }
 

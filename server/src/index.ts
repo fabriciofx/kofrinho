@@ -9,7 +9,7 @@ import { iniciarAgendador } from './services/schedulerService.js'
 import authRoutes from './routes/authRoutes.js'
 import kofrinhoRoutes from './routes/kofrinhoRoutes.js'
 import avatarRoutes from './routes/avatarRoutes.js'
-import { registrarSolicitacao, paginaSolicitacao, qrcodeSolicitacao } from './controllers/solicitacaoController.js'
+import { registrarSolicitacao, paginaSolicitacao, qrcodeSolicitacao, statusSolicitacao } from './controllers/solicitacaoController.js'
 import { runAsync, runAsyncWithLastId } from './database/db.js'
 import openapiSpec from './docs/openapi.js'
 
@@ -50,6 +50,7 @@ app.post('/api/solicitacoes/:solicitacaoId', registrarSolicitacao)
 // Página web pública (HTML) da solicitação: QR Code (imagem) + Pix copia-e-cola.
 // Servida em mandacaru.org/solicitacoes/:id via proxy do nginx para o backend.
 app.get('/solicitacoes/:solicitacaoId/qrcode.png', qrcodeSolicitacao)
+app.get('/solicitacoes/:solicitacaoId/status', statusSolicitacao)
 app.get('/solicitacoes/:solicitacaoId', paginaSolicitacao)
 
 // Rotas auxiliares para testes E2E (não disponíveis em produção)
