@@ -21,7 +21,8 @@ section .center-image {
 <!-- _paginate: false -->
 <!-- _class: center-logo -->
 
-![width:600px](./kofrinho-medium.png)
+![width:600px](./kofrinho-medium.png)</br>
+**Kofrinho** - Fabrício Barros Cabral
 
 ---
 
